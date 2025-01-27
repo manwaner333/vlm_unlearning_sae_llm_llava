@@ -33,6 +33,20 @@ from sae_training.vit_activations_store import ViTActivationsStore
 import torchvision.transforms as transforms
 from PIL import Image
 import shutil
+from datasets import Dataset, Features, Value
+from datasets import Image as dataset_Image
+
+def conversation_form(key):
+    conversation = [
+        {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": key},
+            {"type": "image"},
+            ],
+        },
+    ]
+    return conversation
 
 def load_images_and_convert_to_tensors(directory_path, device='cuda'):
     images_tensors = []
@@ -101,19 +115,51 @@ def get_model_activations(model, inputs, cfg):
 
     return activations
 
-def get_all_model_activations(model, images, cfg):
+def get_all_model_activations(model, images, conversations, cfg):
     max_batch_size = cfg.max_batch_size_for_vit_forward_pass
     number_of_mini_batches = len(images) // max_batch_size
     remainder = len(images) % max_batch_size
     sae_batches = []
     for mini_batch in trange(number_of_mini_batches, desc = "Dashboard: forward pass images through ViT"):
         image_batch = images[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size]
-        inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
+        conversation_batch = conversations[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size]
+        # inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
+        # conversation = [
+        #     {
+        #     "role": "user",
+        #     "content": [
+        #         {"type": "text", "text": "What is shown in this image?"},
+        #         {"type": "image"},
+        #         ],
+        #     },
+        # ]
+        # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+        batch_of_prompts = []
+        for ele in conversation_batch:
+            batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
+        
+        inputs = model.processor(images=image_batch, text=batch_of_prompts, padding=True, return_tensors="pt").to(model.model.device)
         sae_batches.append(get_model_activations(model, inputs, cfg))
     
     if remainder>0:
         image_batch = images[-remainder:]
-        inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
+        conversation_batch = conversations[-remainder:]
+        # inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
+        # conversation = [
+        #     {
+        #     "role": "user",
+        #     "content": [
+        #         {"type": "text", "text": "What is shown in this image?"},
+        #         {"type": "image"},
+        #         ],
+        #     },
+        # ]
+        # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+        batch_of_prompts = []
+        for ele in conversation_batch:
+            batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
+            
+        inputs = model.processor(images=image_batch, text=batch_of_prompts, padding=True, return_tensors="pt").to(model.model.device)
         sae_batches.append(get_model_activations(model, inputs, cfg))
         
     sae_batches = torch.cat(sae_batches, dim = 0)
@@ -203,13 +249,36 @@ def get_feature_data(
     torch.cuda.empty_cache()
     sparse_autoencoder.eval()
     
-    dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
+    # dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
     
-    if sparse_autoencoder.cfg.dataset_path=="cifar100": # Need to put this in the cfg
-        image_key = 'img'
-    else:
-        image_key = 'image'
-        
+    data_path = sparse_autoencoder.cfg.dataset_path
+    try:
+        with open(data_path, "r") as f:
+            data_json = json.load(f)
+    except:
+        with open(data_path, "r") as f:
+            data_json = [json.loads(line) for line in f.readlines()]
+    data_json = data_json[:400]
+    
+    dataset_dict = {
+        "image": [item["image_path"] for item in data_json],
+        "label": [item["name"] for item in data_json]
+    }
+    
+    features = Features({
+        "image": dataset_Image(), 
+        "label": Value("string")
+    })
+    
+    dataset = Dataset.from_dict(dataset_dict, features=features)
+    
+    # if sparse_autoencoder.cfg.dataset_path=="cifar100": # Need to put this in the cfg
+    #     image_key = 'img'
+    # else:
+    #     image_key = 'image'
+    
+    image_key = 'image'
+    image_label = 'label' 
     dataset = dataset.shuffle(seed = seed)
     directory = "dashboard"
     
@@ -226,18 +295,20 @@ def get_feature_data(
             torch.cuda.empty_cache()
             try:
                 images = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_key]
+                labels = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_label]
+                conversations = [conversation_form(ele) for ele in labels]
             except StopIteration:
                 print('All of the images in the dataset have been processed!')
                 break
             
-            model_activations = get_all_model_activations(model, images, sparse_autoencoder.cfg) # tensor of size [batch, d_resid]
+            model_activations = get_all_model_activations(model, images, conversations, sparse_autoencoder.cfg) # tensor of size [batch, d_resid]
             sae_activations = get_sae_activations(model_activations, sparse_autoencoder).transpose(0,1) # tensor of size [feature_idx, batch]
             del model_activations
             sae_mean_acts += sae_activations.sum(dim = 1)
             sae_sparsity += (sae_activations>0).sum(dim = 1)
             
             # Convert the images list to a torch tensor
-            values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1) # sizes [sae_idx, images] is the size of this matrix correct?
+            values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1)   # 1  # sizes [sae_idx, images] is the size of this matrix correct?
             indices += number_of_images_processed
             
             max_activating_image_values, max_activating_image_indices = get_new_top_k(max_activating_image_values, max_activating_image_indices, values, indices, number_of_max_activating_images)

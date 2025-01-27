@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import timm
 import math
-from transformers import CLIPProcessor, CLIPModel
+from transformers import LlavaForConditionalGeneration, LlavaNextProcessor, LlavaNextForConditionalGeneration
+from transformers import CLIPProcessor, CLIPModel, CLIPImageProcessor, CLIPTokenizerFast, AutoTokenizer
 from typing import Callable
 from contextlib import contextmanager
 from typing import List, Union, Dict, Tuple
@@ -40,7 +41,7 @@ class Hook():
   
   
   def get_attr_path(self, block_layer: int, module_name: str) -> str:
-    attr_path = f'vision_model.encoder.layers[{block_layer}]'
+    attr_path = f'vision_tower.vision_model.encoder.layers[{block_layer}]'
     attr_path += self.path_dict[module_name]
     return attr_path
   
@@ -66,14 +67,27 @@ class Hook():
 
 class HookedVisionTransformer():
   def __init__(self, model_name: str, device = 'cuda'):
-    model, processor = self.get_ViT(model_name)
+    model, processor, tokenizer = self.get_ViT(model_name)
     self.model = model.to(device)
     self.processor = processor
+    self.tokenizer = tokenizer
 
-  def get_ViT(self, model_name):
+  def get_ViT1(self, model_name):
     model = CLIPModel.from_pretrained(model_name)
     processor = CLIPProcessor.from_pretrained(model_name)
     return model, processor
+  
+  def get_ViT(self, model_name):
+    # processor = LlavaNextProcessor.from_pretrained("llava-v1.6-vicuna-7b-hf")
+    # model = LlavaNextForConditionalGeneration.from_pretrained("llava-v1.6-vicuna-7b-hf", torch_dtype=torch.float16, low_cpu_mem_usage=True)
+    # tokenizer = CLIPTokenizerFast.from_pretrained("llava-hf/llava-v1.6-vicuna-7b-hf", from_slow=True)
+    # processor = CLIPProcessor.from_pretrained("llava-hf/llava-v1.6-vicuna-7b-hf", tokenizer=tokenizer)   # CLIPImageProcessor  "openai/clip-vit-large-patch14-336"
+    # processor.size = {"height": 336, "width": 336}
+    # processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-large-patch14-336")
+    processor = LlavaNextProcessor.from_pretrained("llava-hf/llava-v1.6-vicuna-7b-hf")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = LlavaNextForConditionalGeneration.from_pretrained(model_name, attn_implementation="flash_attention_2", torch_dtype=torch.float16)
+    return model, processor, tokenizer
 
   def run_with_cache(self, list_of_hook_locations: List[Tuple[int,str]], *args, return_type = "output", **kwargs):
     cache_dict, list_of_hooks = self.get_caching_hooks(list_of_hook_locations)

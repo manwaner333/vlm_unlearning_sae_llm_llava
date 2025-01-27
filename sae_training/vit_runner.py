@@ -19,7 +19,9 @@ def vision_transformer_sae_runner(cfg):
     else:
         loader = ViTSparseAutoencoderSessionloader(cfg)
         model, sparse_autoencoder, activations_loader = loader.load_session()
-
+    
+    print("model, sparse_auroencode and activations loading finish!!!")
+    
     if cfg.log_to_wandb:
         wandb.init(project=cfg.wandb_project, config=cfg, name=cfg.run_name)
     

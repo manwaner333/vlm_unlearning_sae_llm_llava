@@ -59,6 +59,7 @@ def train_sae_on_vision_transformer(
 
     pbar = tqdm(total=total_training_tokens, desc="Training SAE")
     while n_training_tokens < total_training_tokens:
+        # print(f"n_training_steps:{n_training_steps}")
         # Do a training step.
         sparse_autoencoder.train()
         # Make sure the W_dec is still zero-norm

@@ -40,26 +40,26 @@ cfg = ViTSAERunnerConfig(
     class_token = True,
     image_width = 224,
     image_height = 224,
-    model_name = "openai/clip-vit-large-patch14",
+    model_name = "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = -2,
-    dataset_path = "evanarlian/imagenet_1k_resized_256",
+    dataset_path = "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",
     use_cached_activations = False,
     cached_activations_path = None,
     d_in = 1024,
     
     # SAE Parameters
-    expansion_factor = 64,
+    expansion_factor = 3,  # 64,
     b_dec_init_method = "mean",
     
     # Training Parameters
     lr = 0.0004,
     l1_coefficient = 0.00008,
     lr_scheduler_name="constantwithwarmup",
-    batch_size = 1024,
+    batch_size = 2, # 1024,
     lr_warm_up_steps=500,
-    total_training_tokens = 2_621_440,
-    n_batches_in_store = 15,
+    total_training_tokens = 10,  # 20000, # 2_621_440,
+    n_batches_in_store = 3, # 15,
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,
@@ -90,8 +90,9 @@ sparse_autoencoder.eval()
 get_feature_data(
     sparse_autoencoder,
     model,
-    number_of_images = 524_288,
-    number_of_max_activating_images = 20,
+    number_of_images = 6, # 524_288,
+    number_of_max_activating_images = 10,  # 20, # 20,
+    max_number_of_images_per_iteration = 3,
 )
 
 print("*****Done*****")
