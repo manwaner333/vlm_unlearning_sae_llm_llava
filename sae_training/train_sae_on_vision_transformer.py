@@ -107,6 +107,14 @@ def train_sae_on_vision_transformer(
             act_freq_scores += (feature_acts.abs() > 0).float().sum(0)
             n_frac_active_tokens += batch_size
             feature_sparsity = act_freq_scores / n_frac_active_tokens
+            
+            # 自己增加的， 用来测试run_evals函数的
+            # if "cuda" in str(sparse_autoencoder.cfg.device):
+            #     torch.cuda.empty_cache()
+            # sparse_autoencoder.eval()
+            # run_evals(sparse_autoencoder, activation_store, model, n_training_steps)
+            # sparse_autoencoder.train()
+            # 自己增加的结束
 
             if sparse_autoencoder.cfg.log_to_wandb and ((n_training_steps + 1) % sparse_autoencoder.cfg.wandb_log_frequency == 0):
                 # metrics for currents acts
@@ -224,10 +232,10 @@ def run_evals(sparse_autoencoder: SparseAutoencoder, activation_store: ViTActiva
     
     model_inputs = activation_store.get_batch_of_images_and_labels()
     original_loss = model(return_type='loss', **model_inputs).item()
-    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=False)]
-    reconstruction_loss = model.run_with_hooks(sae_hooks, return_type='loss', **model_inputs).item()
+    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=False)]  # False
+    reconstruction_loss = model.run_with_hooks(sae_hooks, return_type='loss', **model_inputs)  # loss
     zero_ablation_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, zero_ablation, return_module_output=False)]
-    zero_ablation_loss = model.run_with_hooks(zero_ablation_hooks, return_type='loss', **model_inputs).item()
+    zero_ablation_loss = model.run_with_hooks(zero_ablation_hooks, return_type='loss', **model_inputs).item() # loss
     
     reconstruction_score = (reconstruction_loss - original_loss)/(zero_ablation_loss-original_loss)
     

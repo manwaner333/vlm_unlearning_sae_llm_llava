@@ -28,6 +28,7 @@ class ViTActivationsStore:
         self.model = model
         # self.dataset = load_dataset(self.cfg.dataset_path, split="train")
         self.data_path = self.cfg.dataset_path
+        # self.data_path = "./dataset/select.json"
         try:
             with open(self.data_path, "r") as f:
                 data_json = json.load(f)
@@ -97,6 +98,7 @@ class ViTActivationsStore:
         batch_size = self.cfg.max_batch_size_for_vit_forward_pass
         images = []
         labels = []
+        conversations = []
         for _ in range(batch_size):
             try:
                 data = next(self.iterable_dataset)
@@ -106,8 +108,15 @@ class ViTActivationsStore:
             image = data[self.image_key]
             label_index = data[self.label_key]
             images.append(image)
-            labels.append(f"A photo of a {self.labels[label_index]}.")
-        inputs = self.model.processor(images=images, text = labels, return_tensors="pt", padding = True).to(self.cfg.device)
+            labels.append(label_index)
+            conversations.append(self.conversation_form(label_index))
+            # labels.append(f"A photo of a {self.labels[label_index]}.")
+        
+        batch_of_prompts = []
+        for ele in conversations:
+            batch_of_prompts.append(self.model.processor.apply_chat_template(ele, add_generation_prompt=True))
+            
+        inputs = self.model.processor(images=images, text=batch_of_prompts, return_tensors="pt", padding = True).to(self.cfg.device)
         return inputs
         
 
@@ -207,7 +216,10 @@ class ViTActivationsStore:
         inputs = self.model.processor(images=image_batches, text=batch_of_prompts, padding=True, return_tensors="pt").to(self.cfg.device)
         
         # output = self.model.model.generate(**inputs, max_new_tokens=100)
-
+        # for n, p in self.model.model.named_parameters():
+        #     if p.requires_grad:
+        #         print(n, p.shape)
+            
         activations = self.model.run_with_cache(
             list_of_hook_locations,
             **inputs,

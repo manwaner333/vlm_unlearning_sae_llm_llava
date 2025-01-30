@@ -13,8 +13,7 @@ from sae_training.utils import ViTSparseAutoencoderSessionloader
 def vision_transformer_sae_runner(cfg):
     
     if cfg.from_pretrained_path is not None:
-        model, sparse_autoencoder, activations_loader = ViTSparseAutoencoderSessionloader.load_session_from_pretrained(
-            cfg.from_pretrained_path)
+        model, sparse_autoencoder, activations_loader = ViTSparseAutoencoderSessionloader.load_session_from_pretrained(cfg.from_pretrained_path)
         cfg = sparse_autoencoder.cfg
     else:
         loader = ViTSparseAutoencoderSessionloader(cfg)

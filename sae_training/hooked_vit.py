@@ -41,7 +41,8 @@ class Hook():
   
   
   def get_attr_path(self, block_layer: int, module_name: str) -> str:
-    attr_path = f'vision_tower.vision_model.encoder.layers[{block_layer}]'
+    # attr_path = f'vision_tower.vision_model.encoder.layers[{block_layer}]'
+    attr_path = f'language_model.model.layers[{block_layer}]'
     attr_path += self.path_dict[module_name]
     return attr_path
   
@@ -127,6 +128,7 @@ class HookedVisionTransformer():
       return self.contrastive_loss(output.logits_per_image, output.logits_per_text)
     else:
       raise Exception(f"Unrecognised keyword argument return_type='{return_type}'. Must be either 'output' or 'loss'.")
+  
     
   def contrastive_loss(self, logits_per_image: Float[Tensor, "n_images n_prompts"], logits_per_text: Float[Tensor, "n_prompts n_images"]): # Assumes square matrices
     assert logits_per_image.size()[0]==logits_per_image.size()[1], "The number of prompts does not match the number of images."

@@ -43,10 +43,10 @@ cfg = ViTSAERunnerConfig(
     model_name = "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = -2,
-    dataset_path = "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",
+    dataset_path = "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
     use_cached_activations = False,
     cached_activations_path = None,
-    d_in = 1024,
+    d_in = 4096,  # 1024,
     
     # SAE Parameters
     expansion_factor = 3,  # 64,
@@ -80,6 +80,8 @@ cfg = ViTSAERunnerConfig(
     n_checkpoints = 0,
     checkpoint_path = "checkpoints",
     dtype = torch.float32,
+    
+    # from_pretrained_path = 'checkpoints/e2oev6hw/final_sparse_autoencoder_llava-hf/llava-v1.6-vicuna-7b-hf_-2_resid_12288.pt'
     )
 
 torch.cuda.empty_cache()
@@ -87,12 +89,12 @@ sparse_autoencoder, model = vision_transformer_sae_runner(cfg)
 sparse_autoencoder.eval()
 
 
-get_feature_data(
-    sparse_autoencoder,
-    model,
-    number_of_images = 6, # 524_288,
-    number_of_max_activating_images = 10,  # 20, # 20,
-    max_number_of_images_per_iteration = 3,
-)
+# get_feature_data(
+#     sparse_autoencoder,
+#     model,
+#     number_of_images = 6, # 524_288,
+#     number_of_max_activating_images = 10,  # 20, # 20,
+#     max_number_of_images_per_iteration = 3,
+# )
 
 print("*****Done*****")

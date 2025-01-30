@@ -38,7 +38,7 @@ class ViTSparseAutoencoderSessionloader():
         return model, sparse_autoencoder, activations_loader
     
     @classmethod
-    def load_session_from_pretrained(cls, path: str) -> Tuple[HookedTransformer, SparseAutoencoder, ViTActivationsStore]:
+    def load_session_from_pretrained(cls, path: str) -> Tuple[HookedVisionTransformer, SparseAutoencoder, ViTActivationsStore]:  # HookedTransformer
         '''
         Loads a session for analysing a pretrained sparse autoencoder.
         '''
