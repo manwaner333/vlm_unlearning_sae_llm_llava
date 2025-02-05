@@ -37,19 +37,19 @@ os.environ["WANDB__SERVICE_WAIT"] = "300"
 cfg = ViTSAERunnerConfig(
     
     # Data Generating Function (Model + Training Distibuion)
-    class_token = True,
+    class_token = True,  # True,
     image_width = 224,
     image_height = 224,
     model_name = "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = -2,
-    dataset_path = "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
+    dataset_path = "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
     use_cached_activations = False,
     cached_activations_path = None,
     d_in = 4096,  # 1024,
     
     # SAE Parameters
-    expansion_factor = 3,  # 64,
+    expansion_factor = 32,  # 64,
     b_dec_init_method = "mean",
     
     # Training Parameters
@@ -58,7 +58,7 @@ cfg = ViTSAERunnerConfig(
     lr_scheduler_name="constantwithwarmup",
     batch_size = 2, # 1024,
     lr_warm_up_steps=500,
-    total_training_tokens = 10,  # 20000, # 2_621_440,
+    total_training_tokens = 100,  # 20000, # 2_621_440,
     n_batches_in_store = 3, # 15,
     
     # Dead Neurons and Sparsity
@@ -80,6 +80,9 @@ cfg = ViTSAERunnerConfig(
     n_checkpoints = 0,
     checkpoint_path = "checkpoints",
     dtype = torch.float32,
+    
+    # Activation Store Parameters # 自己添加的
+    max_batch_size_for_vit_forward_pass = 2,
     
     # from_pretrained_path = 'checkpoints/e2oev6hw/final_sparse_autoencoder_llava-hf/llava-v1.6-vicuna-7b-hf_-2_resid_12288.pt'
     )

@@ -26,28 +26,47 @@ class ViTActivationsStore:
     ):
         self.cfg = cfg
         self.model = model
-        # self.dataset = load_dataset(self.cfg.dataset_path, split="train")
-        self.data_path = self.cfg.dataset_path
-        # self.data_path = "./dataset/select.json"
-        try:
-            with open(self.data_path, "r") as f:
-                data_json = json.load(f)
-        except:
-            with open(self.data_path, "r") as f:
-                data_json = [json.loads(line) for line in f.readlines()]
-        data_json = data_json[:400]
+        self.dataset = load_dataset(self.cfg.dataset_path, split="train")
         
-        dataset_dict = {
-            "image": [item["image_path"] for item in data_json],
-            "label": [item["name"] for item in data_json]
-        }
+        if self.cfg.dataset_path=="cifar100": # Need to put this in the cfg
+            self.image_key = 'img'
+            self.label_key = 'fine_label'
+        else:
+            self.image_key = 'image'
+            self.label_key = 'label'
+            
+        self.labels = self.dataset.features[self.label_key].names
+        self.dataset = self.dataset.shuffle(seed=42)
+        self.iterable_dataset = iter(self.dataset)
         
-        features = Features({
-            "image": dataset_Image(),  # 指定 image_path 为 Image 类型
-            "label": Value("string")
-        })
+        # 之前自己添加的数据提取
+        # self.data_path = self.cfg.dataset_path
+        # try:
+        #     with open(self.data_path, "r") as f:
+        #         data_json = json.load(f)
+        # except:
+        #     with open(self.data_path, "r") as f:
+        #         data_json = [json.loads(line) for line in f.readlines()]
+        # data_json = data_json[:400]
         
-        hf_dataset = Dataset.from_dict(dataset_dict, features=features)
+        # dataset_dict = {
+        #     "image": [item["image_path"] for item in data_json],
+        #     "label": [item["name"] for item in data_json]
+        # }
+        
+        # features = Features({
+        #     "image": dataset_Image(),  # 指定 image_path 为 Image 类型
+        #     "label": Value("string")
+        # })
+        
+        # hf_dataset = Dataset.from_dict(dataset_dict, features=features)
+        # self.dataset = hf_dataset
+        # self.image_key = 'image'
+        # self.label_key = 'label'
+        
+        # self.dataset = self.dataset.shuffle(seed=42)    
+        # self.iterable_dataset = iter(self.dataset)
+        # 自己添加的数据提取结束
         
         # imag_transform = transforms.Compose([
         #     transforms.Resize((224, 224)), 
@@ -60,22 +79,7 @@ class ViTActivationsStore:
         #     example["image"] = imag_transform(image)
         #     return example
         
-        # self.dataset = hf_dataset.map(load_image)
-        
-        self.dataset = hf_dataset
-        self.image_key = 'image'
-        self.label_key = 'label'
-
-        # if self.cfg.dataset_path=="cifar100": # Need to put this in the cfg
-        #     self.image_key = 'img'
-        #     self.label_key = 'fine_label'
-        # else:
-        #     self.image_key = 'image'
-        #     self.label_key = 'label'
-        # self.labels = self.dataset.features[self.label_key].names
-        
-        self.dataset = self.dataset.shuffle(seed=42)    
-        self.iterable_dataset = iter(self.dataset)
+        # self.dataset = hf_dataset.map(load_image)    
         
         if self.cfg.use_cached_activations:
             """
@@ -158,7 +162,8 @@ class ViTActivationsStore:
             for _ in trange(self.cfg.store_size, desc = "Filling activation store with images"):
                 try:
                     image = next(self.iterable_dataset)[self.image_key]
-                    label = next(self.iterable_dataset)[self.label_key]
+                    # label = next(self.iterable_dataset)[self.label_key]
+                    label = "Please describe the content of this image."
                     batch_of_images.append(image)
                     batch_of_conversations.append(self.conversation_form(label))
                 except StopIteration:
@@ -225,9 +230,12 @@ class ViTActivationsStore:
             **inputs,
         )[1][(block_layer, module_name)]
         
+        
+        
         if self.cfg.class_token:
           # Only keep the class token
-          activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
+          activations = activations[:,-1,:] 
+          # activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
           # Eg "x = x[:, 0]  # class token" - the [:,0] indexes the batch dimension then the token dimension
 
         return activations
