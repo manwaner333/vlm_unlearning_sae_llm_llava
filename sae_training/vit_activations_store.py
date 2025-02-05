@@ -37,6 +37,7 @@ class ViTActivationsStore:
             
         self.labels = self.dataset.features[self.label_key].names
         self.dataset = self.dataset.shuffle(seed=42)
+        print(f"Total data quantity: {len(self.dataset)}")
         self.iterable_dataset = iter(self.dataset)
         
         # 之前自己添加的数据提取
@@ -270,6 +271,7 @@ class ViTActivationsStore:
         batch_size = self.cfg.batch_size
         
         sae_batches = self.get_sae_batches()
+        print(f"The actual amount of data loaded: {len(sae_batches)}")
         
         dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
         

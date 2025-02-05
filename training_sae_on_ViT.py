@@ -59,7 +59,7 @@ cfg = ViTSAERunnerConfig(
     batch_size = 2, # 1024,
     lr_warm_up_steps=500,
     total_training_tokens = 100,  # 20000, # 2_621_440,
-    n_batches_in_store = 3, # 15,
+    n_batches_in_store = 3000, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,
