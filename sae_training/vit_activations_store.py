@@ -218,8 +218,10 @@ class ViTActivationsStore:
         batch_of_prompts = []
         for ele in conversation_batches:
             batch_of_prompts.append(self.model.processor.apply_chat_template(ele, add_generation_prompt=True))
-            
+        
         inputs = self.model.processor(images=image_batches, text=batch_of_prompts, padding=True, return_tensors="pt").to(self.cfg.device)
+        
+        print((inputs.input_ids != self.model.processor.tokenizer.pad_token_id).sum(dim=1))
         
         # output = self.model.model.generate(**inputs, max_new_tokens=100)
         # for n, p in self.model.model.named_parameters():
@@ -231,7 +233,7 @@ class ViTActivationsStore:
             **inputs,
         )[1][(block_layer, module_name)]
         
-        
+
         
         if self.cfg.class_token:
           # Only keep the class token
@@ -273,7 +275,8 @@ class ViTActivationsStore:
         sae_batches = self.get_sae_batches()
         print(f"The actual amount of data loaded: {len(sae_batches)}")
         
-        dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
+        # dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
+        dataloader = DataLoader(sae_batches, batch_size=batch_size, shuffle=True)
         
         return dataloader
     

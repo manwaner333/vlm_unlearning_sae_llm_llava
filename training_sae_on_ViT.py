@@ -40,7 +40,7 @@ cfg = ViTSAERunnerConfig(
     class_token = True,  # True,
     image_width = 224,
     image_height = 224,
-    model_name = "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
+    model_name = "llava-hf/llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = -2,
     dataset_path = "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
@@ -58,8 +58,8 @@ cfg = ViTSAERunnerConfig(
     lr_scheduler_name="constantwithwarmup",
     batch_size = 2, # 1024,
     lr_warm_up_steps=500,
-    total_training_tokens = 100,  # 20000, # 2_621_440,
-    n_batches_in_store = 3000, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    total_training_tokens = 400,  # 20000, # 2_621_440,
+    n_batches_in_store = 100, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,
@@ -82,7 +82,7 @@ cfg = ViTSAERunnerConfig(
     dtype = torch.float32,
     
     # Activation Store Parameters # 自己添加的
-    max_batch_size_for_vit_forward_pass = 2,
+    max_batch_size_for_vit_forward_pass = 5,
     
     # from_pretrained_path = 'checkpoints/e2oev6hw/final_sparse_autoencoder_llava-hf/llava-v1.6-vicuna-7b-hf_-2_resid_12288.pt'
     )
