@@ -102,7 +102,7 @@ cfg = ViTSAERunnerConfig(
     checkpoint_path = "checkpoints",
     dtype = torch.float32,
     
-    from_pretrained_path = 'checkpoints/e2oev6hw/final_sparse_autoencoder_llava-hf/llava-v1.6-vicuna-7b-hf_-2_resid_12288.pt'
+    from_pretrained_path = 'checkpoints/0ns2guf8/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt'
     )
 
 # torch.cuda.empty_cache()
@@ -203,7 +203,7 @@ model_inputs = activations_loader.get_batch_of_images_and_labels()
 input_ids = model_inputs["input_ids"]
 attention_mask = model_inputs["attention_mask"]
 pixel_values = model_inputs["pixel_values"]
-image_sizes = model_inputs["image_sizes"]
+# image_sizes = model_inputs["image_sizes"]
 max_token = 100
 generated_ids = input_ids.clone()
 sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)]  
@@ -216,7 +216,7 @@ with torch.no_grad():
         input_ids=generated_ids,
         attention_mask=attention_mask,
         pixel_values=pixel_values,
-        image_sizes=image_sizes,
+        # image_sizes=image_sizes,
     )
 
     logits = outputs.logits[:, -1, :]  

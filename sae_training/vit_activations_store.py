@@ -111,7 +111,8 @@ class ViTActivationsStore:
                 self.iterable_dataset = iter(self.dataset.shuffle())
                 data = next(self.iterable_dataset)
             image = data[self.image_key]
-            label_index = data[self.label_key]
+            # label_index = data[self.label_key]
+            label_index = "Please describe the content of this image."
             images.append(image)
             labels.append(label_index)
             conversations.append(self.conversation_form(label_index))

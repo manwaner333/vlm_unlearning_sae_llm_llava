@@ -41,7 +41,7 @@ def conversation_form(key):
         {
         "role": "user",
         "content": [
-            {"type": "text", "text": key},
+            {"type": "text", "text": "What's in the picture?"},
             {"type": "image"},
             ],
         },
@@ -249,28 +249,29 @@ def get_feature_data(
     torch.cuda.empty_cache()
     sparse_autoencoder.eval()
     
-    # dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
+    dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
     
-    data_path = sparse_autoencoder.cfg.dataset_path
-    try:
-        with open(data_path, "r") as f:
-            data_json = json.load(f)
-    except:
-        with open(data_path, "r") as f:
-            data_json = [json.loads(line) for line in f.readlines()]
-    data_json = data_json[:400]
+    dataset = dataset.select(range(1000))
+    # data_path = sparse_autoencoder.cfg.dataset_path
+    # try:
+    #     with open(data_path, "r") as f:
+    #         data_json = json.load(f)
+    # except:
+    #     with open(data_path, "r") as f:
+    #         data_json = [json.loads(line) for line in f.readlines()]
+    # data_json = data_json[:400]
     
-    dataset_dict = {
-        "image": [item["image_path"] for item in data_json],
-        "label": [item["name"] for item in data_json]
-    }
+    # dataset_dict = {
+    #     "image": [item["image_path"] for item in data_json],
+    #     "label": [item["name"] for item in data_json]
+    # }
     
-    features = Features({
-        "image": dataset_Image(), 
-        "label": Value("string")
-    })
+    # features = Features({
+    #     "image": dataset_Image(), 
+    #     "label": Value("string")
+    # })
     
-    dataset = Dataset.from_dict(dataset_dict, features=features)
+    # dataset = Dataset.from_dict(dataset_dict, features=features)
     
     # if sparse_autoencoder.cfg.dataset_path=="cifar100": # Need to put this in the cfg
     #     image_key = 'img'

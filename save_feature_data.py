@@ -28,7 +28,7 @@ if torch.backends.mps.is_available():
 else:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-sae_path = ""
+sae_path = "checkpoints/0ns2guf8/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
 
 loaded_object = torch.load(sae_path)
 
@@ -51,6 +51,6 @@ model.to(cfg.device)
 get_feature_data(
     sparse_autoencoder,
     model,
-    number_of_images = 524_288,
-    number_of_max_activating_images = 20,
+    number_of_images = 33,  # 524_288,
+    number_of_max_activating_images = 10,
 )
