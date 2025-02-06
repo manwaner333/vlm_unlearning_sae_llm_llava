@@ -113,9 +113,7 @@ os.environ["WANDB__SERVICE_WAIT"] = "300"
 original_model = False
 sae_model = True
 
-def sae_hook(activations):
-    activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   # activations[:,-1,:]*0.5     #   activations[:,0,:] = sparse_autoencoder(activations[:,0,:])[0]
-    return (activations,)
+
 
 ### specific case study---sparse autoencoder model
 if sae_model:
@@ -215,6 +213,13 @@ if sae_model:
         
     max_token = 50
     generated_ids = input_ids.clone()
+    
+    def sae_hook(activations):
+        activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:], ghost_grad_neuron_mask)[0]   # activations[:,-1,:]*0.5     #   activations[:,0,:] = sparse_autoencoder(activations[:,0,:])[0]
+        return (activations,)
+    
+    n_forward_passes_since_fired = torch.zeros(sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device)
+    ghost_grad_neuron_mask = (n_forward_passes_since_fired > sparse_autoencoder.cfg.dead_feature_window).bool()
     sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
 
     with torch.no_grad():
