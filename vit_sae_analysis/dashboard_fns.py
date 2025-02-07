@@ -111,7 +111,7 @@ def get_model_activations(model, inputs, cfg):
         **inputs,
     )[1][(block_layer, module_name)]
     
-    activations = activations[:,0,:]
+    activations = activations[:,-1,:]
 
     return activations
 
