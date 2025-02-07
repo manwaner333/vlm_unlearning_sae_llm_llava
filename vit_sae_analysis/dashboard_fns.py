@@ -252,6 +252,7 @@ def get_feature_data(
     dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
     
     dataset = dataset.select(range(1000))
+    
     # data_path = sparse_autoencoder.cfg.dataset_path
     # try:
     #     with open(data_path, "r") as f:
@@ -338,4 +339,4 @@ def get_feature_data(
         torch.save(sae_mean_acts, f'{directory}/sae_mean_acts.pt')
         # Should also save label information tensor here!!!
         
-    save_highest_activating_images(max_activating_image_indices[:1000,:10], max_activating_image_values[:1000,:10], directory, dataset, image_key)
+    save_highest_activating_images(max_activating_image_indices[:10,:10], max_activating_image_values[:10,:10], directory, dataset, image_key)  # 1000
