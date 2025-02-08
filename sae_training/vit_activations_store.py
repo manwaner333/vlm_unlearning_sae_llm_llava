@@ -111,7 +111,6 @@ class ViTActivationsStore:
                 self.iterable_dataset = iter(self.dataset.shuffle())
                 data = next(self.iterable_dataset)
             image = data[self.image_key]
-            # label_index = data[self.label_key]
             label_index = "Please describe the content of this image."
             images.append(image)
             labels.append(label_index)
@@ -276,8 +275,8 @@ class ViTActivationsStore:
         sae_batches = self.get_sae_batches()
         print(f"The actual amount of data loaded: {len(sae_batches)}")
         
-        # dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
-        dataloader = DataLoader(sae_batches, batch_size=batch_size, shuffle=True)
+        dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
+        # dataloader = DataLoader(sae_batches, batch_size=batch_size, shuffle=True)
         
         return dataloader
     

@@ -58,8 +58,8 @@ cfg = ViTSAERunnerConfig(
     lr_scheduler_name="constantwithwarmup",
     batch_size = 2, # 1024,
     lr_warm_up_steps=500,
-    total_training_tokens = 400,  # 20000, # 2_621_440,
-    n_batches_in_store = 100, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    total_training_tokens = 1000,  # 20000, # 2_621_440,
+    n_batches_in_store = 20, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,

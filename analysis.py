@@ -208,7 +208,10 @@ sae_sparsity = False
 ### specific case study---sparse autoencoder model
 if sae_model:
     
-    sae_path = "checkpoints/0ns2guf8/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
+    # sae_path = "checkpoints/0ns2guf8/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
+    sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/a290660cfffb2fa669e809a8b52298dc901d2069/model.pt"
+    # sae_path = "checkpoints/gsy8f8zy/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
+    # sae_path = "checkpoints/n8n9crf4/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
     loaded_object = torch.load(sae_path)
     cfg = loaded_object['cfg']
     state_dict = loaded_object['state_dict']
@@ -222,8 +225,12 @@ if sae_model:
 
     print("model and sparse_auroencode loading finish!!!")
 
-    image_file = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    raw_image = Image.open(requests.get(image_file, stream=True).raw)
+    # image_file = "http://images.cocodataset.org/val2017/000000039769.jpg"
+    # raw_image = Image.open(requests.get(image_file, stream=True).raw)
+    
+    image_file = "image1.jpg"
+    raw_image = Image.open(image_file)
+    
     conversation = [
         {
 
@@ -254,12 +261,12 @@ if sae_model:
     generated_ids = input_ids.clone()
     
     activation_cache = []
-    
-    
     def sae_hook1(activations):
         global activation_cache
+        print("before:", activations.shape)
         activation_cache.append(activations[:, -1, :].clone().detach())
-        activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]
+        activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]  #  + 0.9 * activations[:,-1,:]
+        print("After:", activations.shape)
         return (activations,)
     
     def sae_hook(activations):
@@ -268,11 +275,24 @@ if sae_model:
         activations[:,-1,:] = activations[:,-1,:]   
         return (activations,)
     
+    # def sae_hook1(activations, original_output=None):
+    #     global activation_cache
+    #     activation_cache.append(activations[:, -1, :].clone().detach())
+    #     activations[:, -1, :] = sparse_autoencoder(activations[:, -1, :])[0]  
+
+    #     # Ensure the model gets all expected outputs
+    #     if original_output is not None:
+    #         return (activations, *original_output[1:])  # Preserve other return values
+    #     return (activations,)
+
     
     
     # n_forward_passes_since_fired = torch.zeros(sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device)
     # ghost_grad_neuron_mask = (n_forward_passes_since_fired > sparse_autoencoder.cfg.dead_feature_window).bool()
-    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
+    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook1, return_module_output=True)] 
+    # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations, original_output: sae_hook1(activations, original_output),
+    # return_module_output=True)]
+
     new_tokens = []
     with torch.no_grad():
         for ele in range(max_token):
