@@ -38,6 +38,7 @@ def train_sae_on_vision_transformer(
     n_training_tokens = 0
     if n_checkpoints > 0:
         checkpoint_thresholds = list(range(0, total_training_tokens, total_training_tokens // n_checkpoints))[1:]
+        qingli = 3
     
     # track active features
     act_freq_scores = torch.zeros(sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device)
@@ -176,22 +177,22 @@ def train_sae_on_vision_transformer(
             path = f"{sparse_autoencoder.cfg.checkpoint_path}/{n_training_tokens}_{sparse_autoencoder.get_name()}.pt"
             log_feature_sparsity_path = f"{sparse_autoencoder.cfg.checkpoint_path}/{n_training_tokens}_{sparse_autoencoder.get_name()}_log_feature_sparsity.pt"
             sparse_autoencoder.save_model(path)
-            torch.save(log_feature_sparsity, log_feature_sparsity_path)
+            # torch.save(log_feature_sparsity, log_feature_sparsity_path)
             checkpoint_thresholds.pop(0)
             if len(checkpoint_thresholds) == 0:
                 n_checkpoints = 0
-            if cfg.log_to_wandb:
-                model_artifact = wandb.Artifact(
-                    f"{sparse_autoencoder.get_name()}", type="model", metadata=dict(cfg.__dict__)
-                )
-                model_artifact.add_file(path)
-                wandb.log_artifact(model_artifact)
+            # if cfg.log_to_wandb:
+            #     model_artifact = wandb.Artifact(
+            #         f"{sparse_autoencoder.get_name()}", type="model", metadata=dict(cfg.__dict__)
+            #     )
+            #     model_artifact.add_file(path)
+            #     wandb.log_artifact(model_artifact)
                 
-                sparsity_artifact = wandb.Artifact(
-                    f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
-                )
-                sparsity_artifact.add_file(log_feature_sparsity_path)
-                wandb.log_artifact(sparsity_artifact)
+            #     sparsity_artifact = wandb.Artifact(
+            #         f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
+            #     )
+            #     sparsity_artifact.add_file(log_feature_sparsity_path)
+            #     wandb.log_artifact(sparsity_artifact)
                 
             
         n_training_steps += 1
@@ -200,13 +201,13 @@ def train_sae_on_vision_transformer(
     if n_checkpoints > 0:
         log_feature_sparsity_path = f"{sparse_autoencoder.cfg.checkpoint_path}/final_{sparse_autoencoder.get_name()}_log_feature_sparsity.pt"
         sparse_autoencoder.save_model(path)
-        torch.save(log_feature_sparsity, log_feature_sparsity_path)
-        if cfg.log_to_wandb:
-            sparsity_artifact = wandb.Artifact(
-                    f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
-                )
-            sparsity_artifact.add_file(log_feature_sparsity_path)
-            wandb.log_artifact(sparsity_artifact)
+        # torch.save(log_feature_sparsity, log_feature_sparsity_path)
+        # if cfg.log_to_wandb:
+        #     sparsity_artifact = wandb.Artifact(
+        #             f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
+        #         )
+        #     sparsity_artifact.add_file(log_feature_sparsity_path)
+        #     wandb.log_artifact(sparsity_artifact)
         
 
     return sparse_autoencoder
@@ -224,9 +225,9 @@ def run_evals(sparse_autoencoder: SparseAutoencoder, activation_store: ViTActiva
     
     model_inputs = activation_store.get_batch_of_images_and_labels()
     original_loss = model(return_type='loss', **model_inputs).item()
-    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=False)]  # False
+    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)]  # False
     reconstruction_loss = model.run_with_hooks(sae_hooks, return_type='loss', **model_inputs)  # loss
-    zero_ablation_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, zero_ablation, return_module_output=False)]
+    zero_ablation_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, zero_ablation, return_module_output=True)]
     zero_ablation_loss = model.run_with_hooks(zero_ablation_hooks, return_type='loss', **model_inputs).item() # loss
     
     reconstruction_score = (reconstruction_loss - original_loss)/(zero_ablation_loss-original_loss)

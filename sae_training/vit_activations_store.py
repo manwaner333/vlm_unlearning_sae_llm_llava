@@ -221,7 +221,7 @@ class ViTActivationsStore:
         
         inputs = self.model.processor(images=image_batches, text=batch_of_prompts, padding=True, return_tensors="pt").to(self.cfg.device)
         
-        print((inputs.input_ids != self.model.processor.tokenizer.pad_token_id).sum(dim=1))
+        # print((inputs.input_ids != self.model.processor.tokenizer.pad_token_id).sum(dim=1))
         
         # output = self.model.model.generate(**inputs, max_new_tokens=100)
         # for n, p in self.model.model.named_parameters():
