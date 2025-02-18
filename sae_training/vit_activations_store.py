@@ -237,7 +237,7 @@ class ViTActivationsStore:
         
         if self.cfg.class_token:
           # Only keep the class token
-          activations = activations[:,-1,:] 
+          activations = activations[:,-3,:] 
           # activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
           # Eg "x = x[:, 0]  # class token" - the [:,0] indexes the batch dimension then the token dimension
 

@@ -41,8 +41,8 @@ class Hook():
   
   
   def get_attr_path(self, block_layer: int, module_name: str) -> str:
-    # attr_path = f'vision_tower.vision_model.encoder.layers[{block_layer}]'
-    attr_path = f'language_model.model.layers[{block_layer}]'
+    attr_path = f'vision_tower.vision_model.encoder.layers[{block_layer}]'
+    # attr_path = f'language_model.model.layers[{block_layer}]'
     attr_path += self.path_dict[module_name]
     return attr_path
   
@@ -92,7 +92,7 @@ class HookedVisionTransformer():
     # model = LlavaNextForConditionalGeneration.from_pretrained(model_name, attn_implementation="flash_attention_2", torch_dtype=torch.float16)
     # processor.image_processor.size = {"height": 336, "width": 336}
     processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
-    model = LlavaForConditionalGeneration.from_pretrained(model_name, attn_implementation="flash_attention_2", torch_dtype=torch.float16)
+    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf", attn_implementation="flash_attention_2", torch_dtype=torch.float16)
     return model, processor
 
   def run_with_cache(self, list_of_hook_locations: List[Tuple[int,str]], *args, return_type = "output", **kwargs):

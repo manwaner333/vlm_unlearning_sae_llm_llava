@@ -209,9 +209,10 @@ sae_sparsity = False
 if sae_model:
     
     # sae_path = "checkpoints/0ns2guf8/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
-    sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/a290660cfffb2fa669e809a8b52298dc901d2069/model.pt"
+    # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/a290660cfffb2fa669e809a8b52298dc901d2069/model.pt"
     # sae_path = "checkpoints/gsy8f8zy/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
-    # sae_path = "checkpoints/n8n9crf4/final_sparse_autoencoder_llava-hf/llava-1.5-7b-hf_-2_resid_131072.pt"
+    # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/99d8212c2b7e2d9661e1de1dab3b64b3dbb4f9b0/100864_sae_model.pt"
+    sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/257fad408af4e96fb532887018dd8520cacc0a9f/302592_sae_model.pt"
     loaded_object = torch.load(sae_path)
     cfg = loaded_object['cfg']
     state_dict = loaded_object['state_dict']
@@ -233,7 +234,6 @@ if sae_model:
     
     conversation = [
         {
-
         "role": "user",
         "content": [
             {"type": "text", "text": "What are these?"},
@@ -242,7 +242,7 @@ if sae_model:
         },
     ]
     prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-    model_inputs = model.processor(images=raw_image, text=prompt, return_tensors='pt').to(0, torch.float16)
+    model_inputs = model.processor(images=raw_image, text=prompt, return_tensors='pt').to(cfg.device, torch.float16)
     prompt_tokens = model_inputs.input_ids
     answer = "These are cat."
     # model_inputs = model.processor(text=answer, return_tensors='pt').to(0, torch.float16)
@@ -264,15 +264,19 @@ if sae_model:
     def sae_hook1(activations):
         global activation_cache
         print("before:", activations.shape)
-        activation_cache.append(activations[:, -1, :].clone().detach())
-        activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]  #  + 0.9 * activations[:,-1,:]
+        activation_cache.append(activations[:, -2, :].clone().detach())
+        activations[:,-2,:] = sparse_autoencoder(activations[:,-2,:])[0]
         print("After:", activations.shape)
+        return (activations,)
+    
+    def zero_ablation(activations):
+        activations[:,-1,:] = torch.zeros_like(activations[:,-1,:]).to(activations.device)
         return (activations,)
     
     def sae_hook(activations):
         global activation_cache
-        activation_cache.append(activations[:, -1, :].clone().detach())
-        activations[:,-1,:] = activations[:,-1,:]   
+        activation_cache.append(activations[:, -2, :].clone().detach())
+        activations[:,-2,:] = activations[:,-2,:]   
         return (activations,)
     
     # def sae_hook1(activations, original_output=None):
@@ -289,7 +293,8 @@ if sae_model:
     
     # n_forward_passes_since_fired = torch.zeros(sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device)
     # ghost_grad_neuron_mask = (n_forward_passes_since_fired > sparse_autoencoder.cfg.dead_feature_window).bool()
-    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook1, return_module_output=True)] 
+    sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook1, return_module_output=True)]
+    zero_ablation_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, zero_ablation, return_module_output=True)] 
     # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations, original_output: sae_hook1(activations, original_output),
     # return_module_output=True)]
 
@@ -350,6 +355,9 @@ if original_model:
 
     image_file = "http://images.cocodataset.org/val2017/000000039769.jpg"
     raw_image = Image.open(requests.get(image_file, stream=True).raw)
+    
+    # image_file = "image1.jpg"
+    # raw_image = Image.open(image_file)
     conversation = [
         {
 

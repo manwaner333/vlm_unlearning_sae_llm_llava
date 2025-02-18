@@ -15,6 +15,7 @@ from sae_training.optim import get_scheduler
 from sae_training.sparse_autoencoder import SparseAutoencoder
 from sae_training.hooked_vit import HookedVisionTransformer, Hook
 from sae_training.config import ViTSAERunnerConfig
+from PIL import Image
 
 
 def train_sae_on_vision_transformer(
@@ -38,7 +39,7 @@ def train_sae_on_vision_transformer(
     n_training_tokens = 0
     if n_checkpoints > 0:
         checkpoint_thresholds = list(range(0, total_training_tokens, total_training_tokens // n_checkpoints))[1:]
-        qingli = 3
+    print(checkpoint_thresholds)
     
     # track active features
     act_freq_scores = torch.zeros(sparse_autoencoder.cfg.d_sae, device=sparse_autoencoder.cfg.device)
@@ -108,6 +109,7 @@ def train_sae_on_vision_transformer(
             act_freq_scores += (feature_acts.abs() > 0).float().sum(0)
             n_frac_active_tokens += batch_size
             feature_sparsity = act_freq_scores / n_frac_active_tokens
+            log_feature_sparsity = torch.log10(feature_sparsity + 1e-10).detach().cpu()  # 增加的一句话
 
             if sparse_autoencoder.cfg.log_to_wandb and ((n_training_steps + 1) % sparse_autoencoder.cfg.wandb_log_frequency == 0):
                 # metrics for currents acts
@@ -159,7 +161,55 @@ def train_sae_on_vision_transformer(
             #     sparse_autoencoder.eval()
             #     run_evals(sparse_autoencoder, activation_store, model, n_training_steps)
             #     sparse_autoencoder.train()
-                
+            
+            # 增加自己的评估
+            # sparse_autoencoder.eval()
+            # image_file = "image1.jpg"
+            # raw_image = Image.open(image_file)
+            
+            # conversation = [
+            #     {
+            #     "role": "user",
+            #     "content": [
+            #         {"type": "text", "text": "What are these?"},
+            #         {"type": "image"},
+            #         ],
+            #     },
+            # ]
+            # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+            # model_inputs = model.processor(images=raw_image, text=prompt, return_tensors='pt').to(0, torch.float16)
+            # input_ids = model_inputs.input_ids
+            # attention_mask = model_inputs.attention_mask
+            # pixel_values = model_inputs.pixel_values
+            # generated_ids = input_ids.clone()
+            
+            # def sae_hook1(activations):
+            #     activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0] 
+            #     # activations[:,-1,:] = activations[:,-1,:]
+            #     return (activations,)
+                    
+            # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook1, return_module_output=True)] 
+            # max_token = 20
+            # for ele in range(max_token):
+            #     outputs = model.run_with_hooks(
+            #         sae_hooks,
+            #         return_type='output',
+            #         input_ids=generated_ids,
+            #         attention_mask=attention_mask,
+            #         pixel_values=pixel_values,
+            #         # image_sizes=image_sizes,
+            #     )
+            #     logits = outputs.logits[:, -1, :]  
+            #     next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
+            #     generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+            #     new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
+            #     attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
+            #     torch.cuda.empty_cache()
+            # output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            # print(output_texts)
+            # sparse_autoencoder.train()
+            # 评估结束
+               
             pbar.set_description(
                 f"{n_training_steps}| Loss {loss.item():.3f} | MSE Loss {mse_loss.item():.3f} | L1 {l1_loss.item():.3f} | Ghost Grad Loss {ghost_grad_loss.item():.3f}"
             )
@@ -177,22 +227,22 @@ def train_sae_on_vision_transformer(
             path = f"{sparse_autoencoder.cfg.checkpoint_path}/{n_training_tokens}_{sparse_autoencoder.get_name()}.pt"
             log_feature_sparsity_path = f"{sparse_autoencoder.cfg.checkpoint_path}/{n_training_tokens}_{sparse_autoencoder.get_name()}_log_feature_sparsity.pt"
             sparse_autoencoder.save_model(path)
-            # torch.save(log_feature_sparsity, log_feature_sparsity_path)
+            torch.save(log_feature_sparsity, log_feature_sparsity_path)
             checkpoint_thresholds.pop(0)
             if len(checkpoint_thresholds) == 0:
                 n_checkpoints = 0
-            # if cfg.log_to_wandb:
-            #     model_artifact = wandb.Artifact(
-            #         f"{sparse_autoencoder.get_name()}", type="model", metadata=dict(cfg.__dict__)
-            #     )
-            #     model_artifact.add_file(path)
-            #     wandb.log_artifact(model_artifact)
+            if cfg.log_to_wandb:
+                model_artifact = wandb.Artifact(
+                    f"{sparse_autoencoder.get_name()}", type="model", metadata=dict(cfg.__dict__)
+                )
+                model_artifact.add_file(path)
+                wandb.log_artifact(model_artifact)
                 
-            #     sparsity_artifact = wandb.Artifact(
-            #         f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
-            #     )
-            #     sparsity_artifact.add_file(log_feature_sparsity_path)
-            #     wandb.log_artifact(sparsity_artifact)
+                sparsity_artifact = wandb.Artifact(
+                    f"{sparse_autoencoder.get_name()}_log_feature_sparsity", type="log_feature_sparsity", metadata=dict(cfg.__dict__)
+                )
+                sparsity_artifact.add_file(log_feature_sparsity_path)
+                wandb.log_artifact(sparsity_artifact)
                 
             
         n_training_steps += 1
