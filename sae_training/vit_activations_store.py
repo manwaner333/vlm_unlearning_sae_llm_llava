@@ -111,7 +111,8 @@ class ViTActivationsStore:
                 self.iterable_dataset = iter(self.dataset.shuffle())
                 data = next(self.iterable_dataset)
             image = data[self.image_key]
-            label_index = "Please describe the content of this image."
+            # label_index = "Please describe the content of this image."
+            label_index = data[self.label_key]
             images.append(image)
             labels.append(label_index)
             conversations.append(self.conversation_form(label_index))
@@ -163,14 +164,17 @@ class ViTActivationsStore:
             for _ in trange(self.cfg.store_size, desc = "Filling activation store with images"):
                 try:
                     image = next(self.iterable_dataset)[self.image_key]
-                    # label = next(self.iterable_dataset)[self.label_key]
-                    label = "Please describe the content of this image."
+                    label = next(self.iterable_dataset)[self.label_key]
+                    label = str(label)
+                    # label = "Please describe the content of this image."
                     batch_of_images.append(image)
                     batch_of_conversations.append(self.conversation_form(label))
                 except StopIteration:
                     self.iterable_dataset = iter(self.dataset.shuffle())
                     image = next(self.iterable_dataset)[self.image_key]
                     label = next(self.iterable_dataset)[self.label_key]
+                    label = str(label)
+                    # label = "Please describe the content of this image."
                     batch_of_images.append(image)
                     batch_of_conversations.append(self.conversation_form(label))
         return batch_of_images, batch_of_conversations
@@ -237,7 +241,7 @@ class ViTActivationsStore:
         
         if self.cfg.class_token:
           # Only keep the class token
-          activations = activations[:,-3,:] 
+          activations = activations[:,-7,:] 
           # activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
           # Eg "x = x[:, 0]  # class token" - the [:,0] indexes the batch dimension then the token dimension
 

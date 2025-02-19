@@ -184,7 +184,10 @@ def train_sae_on_vision_transformer(
             # generated_ids = input_ids.clone()
             
             # def sae_hook1(activations):
-            #     activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0] 
+            #     activations[:,0:575,:] = sparse_autoencoder(activations[:,0:575,:])[0]
+            #     # activations[:,575,:] = sparse_autoencoder(activations[:,575,:])[0]
+            #     # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0] 
+            #     # activations[:,0:575,:] = sparse_autoencoder(activations[:,0:575,:]).to(activations.device)
             #     # activations[:,-1,:] = activations[:,-1,:]
             #     return (activations,)
                     
