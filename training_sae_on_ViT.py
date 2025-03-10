@@ -37,29 +37,31 @@ os.environ["WANDB__SERVICE_WAIT"] = "300"
 cfg = ViTSAERunnerConfig(
     
     # Data Generating Function (Model + Training Distibuion)
-    class_token = True,  # True,
+    class_token = False,  # True,
     image_width = 224,
     image_height = 224,
-    model_name = "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
+    model_name = "Llama-3.2-11B-Vision-Instruct",  # "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = -2,
-    dataset_path = "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
+    dataset_path = "lmms-lab/LLaVA-NeXT-Data",  # "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
     use_cached_activations = False,
     cached_activations_path = None,
-    d_in = 1024, # 4096,  # 1024,
+    d_in = 4096, # 4096,  # 1024,
     
     # SAE Parameters
-    expansion_factor = 64,
+    expansion_factor = 8,
     b_dec_init_method = "mean",
     
     # Training Parameters
     lr = 0.0004,
     l1_coefficient = 0.00008,
     lr_scheduler_name="constantwithwarmup",
-    batch_size = 256, # 1024,
+    batch_size = 1024,  # 256, # 1024,
+    store_batch_size = 100,
     lr_warm_up_steps=500,
-    total_training_tokens = 2_621_440,   # 2621440,  # 20000, # 2_621_440,
-    n_batches_in_store = 4, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    total_training_tokens = 856800000,  # 700000 * 612 * 2      # 2621440,  # 20000, # 2_621_440,
+    n_batches_in_store = 3, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    context_size = 600,
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,

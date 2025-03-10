@@ -184,6 +184,7 @@ class ViTSAERunnerConfig():
     n_batches_in_store: int = 32
     store_size: Optional[int] = None
     max_batch_size_for_vit_forward_pass:int = 1024
+    context_size: int = 1024
     
     # Misc
     device: str = "cpu"
@@ -201,6 +202,7 @@ class ViTSAERunnerConfig():
     lr_scheduler_name: str = "constant"  # constant, constantwithwarmup, linearwarmupdecay, cosineannealing, cosineannealingwarmup
     lr_warm_up_steps: int = 500
     batch_size: int = 4096
+    store_batch_size: int = 1024
 
     # Resampling protocol args
     use_ghost_grads: bool = True
@@ -223,7 +225,7 @@ class ViTSAERunnerConfig():
     checkpoint_path: str = "checkpoints"
 
     def __post_init__(self):
-        self.store_size = self.n_batches_in_store * self.batch_size
+        self.store_size = self.n_batches_in_store * self.store_batch_size
         
         # Autofill cached_activations_path unless the user overrode it
         if self.cached_activations_path is None:

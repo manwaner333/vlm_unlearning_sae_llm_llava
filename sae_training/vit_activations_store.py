@@ -26,16 +26,19 @@ class ViTActivationsStore:
     ):
         self.cfg = cfg
         self.model = model
-        self.dataset = load_dataset(self.cfg.dataset_path, split="train")
+        self.dataset = load_dataset(self.cfg.dataset_path, split="train[:700000]")
+        # self.dataset = load_dataset("lmms-lab/LLaVA-NeXT-Data", split="train[:30]")
+        # self.dataset = load_dataset("lmms-lab/LLaVA-NeXT-Data", split="train", download_mode="force_redownload")
         
         if self.cfg.dataset_path=="cifar100": # Need to put this in the cfg
             self.image_key = 'img'
-            self.label_key = 'fine_label'
+            self.label_key = 'conversations'
         else:
             self.image_key = 'image'
-            self.label_key = 'label'
-            
-        self.labels = self.dataset.features[self.label_key].names
+            self.label_key = 'conversations'
+        
+        # self.dataset =  self.dataset[0:700000]  # 取其中的七十万条数据来进行训练。
+        # self.labels = self.dataset.features[self.label_key]
         self.dataset = self.dataset.shuffle(seed=42)
         print(f"Total data quantity: {len(self.dataset)}")
         self.iterable_dataset = iter(self.dataset)
@@ -97,6 +100,7 @@ class ViTActivationsStore:
               """
               Need to implement a buffer for the image patch training.
               """
+              self.dataloader = self.get_data_loader()
               pass
           
     def get_batch_of_images_and_labels(self):
@@ -165,18 +169,38 @@ class ViTActivationsStore:
                 try:
                     image = next(self.iterable_dataset)[self.image_key]
                     label = next(self.iterable_dataset)[self.label_key]
-                    label = str(label)
+                    # label = str(label)
                     # label = "Please describe the content of this image."
+                    label_origin = " ".join(v["value"].replace("<image>\n", "") for v in label)
+                    label = label_origin
+                    tokens = self.model.processor.tokenizer(label)
+                    len_tokens = len(tokens.input_ids)
+                    # if not enough text, fullfill it
+                    while len_tokens < self.cfg.context_size:
+                       label = label + label_origin
+                       tokens = self.model.processor.tokenizer(label)
+                       len_tokens = len(tokens.input_ids)
+                    final_text = self.model.processor.tokenizer.decode(tokens.input_ids[0:self.cfg.context_size])
                     batch_of_images.append(image)
-                    batch_of_conversations.append(self.conversation_form(label))
+                    batch_of_conversations.append(self.conversation_form(final_text))
                 except StopIteration:
                     self.iterable_dataset = iter(self.dataset.shuffle())
                     image = next(self.iterable_dataset)[self.image_key]
                     label = next(self.iterable_dataset)[self.label_key]
-                    label = str(label)
+                    # label = str(label)
                     # label = "Please describe the content of this image."
+                    label_origin = " ".join(v["value"].replace("<image>\n", "") for v in label)
+                    label = label_origin
+                    tokens = self.model.processor.tokenizer(label)
+                    len_tokens = len(tokens.input_ids)
+                    # if not enough text, fullfill it
+                    while len_tokens < self.cfg.context_size:
+                       label = label + label_origin
+                       tokens = self.model.processor.tokenizer(label)
+                       len_tokens = len(tokens.input_ids)
+                    final_text = self.model.processor.tokenizer.decode(tokens.input_ids[0:self.cfg.context_size])
                     batch_of_images.append(image)
-                    batch_of_conversations.append(self.conversation_form(label))
+                    batch_of_conversations.append(self.conversation_form(final_text))
         return batch_of_images, batch_of_conversations
     
 
@@ -241,7 +265,7 @@ class ViTActivationsStore:
         
         if self.cfg.class_token:
           # Only keep the class token
-          activations = activations[:,-7,:] 
+          activations = activations[:,-1,:] 
           # activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
           # Eg "x = x[:, 0]  # class token" - the [:,0] indexes the batch dimension then the token dimension
 
@@ -260,8 +284,10 @@ class ViTActivationsStore:
         
         if remainder>0:
             sae_batches.append(self.get_activations(image_batches[-remainder:], conversation_batches[-remainder:]))
-            
+        
+        print(sae_batches[0].shape)   
         sae_batches = torch.cat(sae_batches, dim = 0)
+        sae_batches = sae_batches.reshape(-1, self.cfg.d_in)
         sae_batches = sae_batches.to(self.cfg.device)
         return sae_batches
         
