@@ -280,15 +280,23 @@ class ViTActivationsStore:
         remainder = len(image_batches) % max_batch_size
         sae_batches = []
         for mini_batch in trange(number_of_mini_batches, desc="Getting batches for SAE"):
-            sae_batches.append(self.get_activations(image_batches[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size], conversation_batches[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size]))
+            ele_activations = self.get_activations(image_batches[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size], conversation_batches[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size])
+            if ele_activations.shape[1] == 612:
+                sae_batches.append(ele_activations)
         
         if remainder>0:
-            sae_batches.append(self.get_activations(image_batches[-remainder:], conversation_batches[-remainder:]))
+            ele_activations = self.get_activations(image_batches[-remainder:], conversation_batches[-remainder:])
+            if ele_activations.shape[1] == 612:
+                sae_batches.append(ele_activations)
         
         print(sae_batches[0].shape)   
-        sae_batches = torch.cat(sae_batches, dim = 0)
-        sae_batches = sae_batches.reshape(-1, self.cfg.d_in)
-        sae_batches = sae_batches.to(self.cfg.device)
+        if len(sae_batches) > 0:
+            sae_batches = torch.cat(sae_batches, dim = 0)
+            sae_batches = sae_batches.reshape(-1, self.cfg.d_in)
+            sae_batches = sae_batches.to(self.cfg.device)
+        else:
+            print("In this batch, all elements do not meet the dimensional requirements.")
+            sae_batches = self.get_sae_batches()
         return sae_batches
         
 
