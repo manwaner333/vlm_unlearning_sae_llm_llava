@@ -313,7 +313,7 @@ class ViTActivationsStore:
         sae_batches = self.get_sae_batches()
         print(f"The actual amount of data loaded: {len(sae_batches)}")
         
-        dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=True))
+        dataloader = iter(DataLoader(sae_batches, batch_size=batch_size, shuffle=False)) # True
         # dataloader = DataLoader(sae_batches, batch_size=batch_size, shuffle=True)
         
         return dataloader
