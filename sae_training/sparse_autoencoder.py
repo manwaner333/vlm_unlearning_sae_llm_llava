@@ -93,7 +93,21 @@ class SparseAutoencoder(HookedRootModule):
         # 如果进行Unlerning， 需要在此处进行修改
         # for indx in range(1, 10000):
         #     feature_acts[...,indx] = 0.2
-      
+        
+        # 如果要进行攻击
+        # topk_values, topk_indices = torch.topk(feature_acts, k=10, dim=1)
+        # 打印索引
+        # topk_indices = [353,  5651, 23963,  2089, 53008, 61542, 47890, 41536, 61615]
+        # print(topk_indices)
+        # for index in topk_indices:
+        #     feature_acts[0, index] = feature_acts[0, index] * (1.5)
+
+        # topk_values, topk_indices = torch.topk(feature_acts, k=10, dim=1)
+        # print(topk_indices)
+        # topk_indices = [353, 5651, 53008, 47890, 2089]
+        # for index in topk_indices:
+        #     feature_acts[0, index] = feature_acts[0, index] * (-1.0)
+        
         sae_out = self.hook_sae_out(
             einops.einsum(
                 feature_acts,
@@ -135,7 +149,8 @@ class SparseAutoencoder(HookedRootModule):
         mse_loss = mse_loss.mean()
         sparsity = torch.abs(feature_acts).sum(dim=1).mean(dim=(0,))
         l1_loss = self.l1_coefficient * sparsity
-        loss = mse_loss + l1_loss + mse_loss_ghost_resid
+        # loss = mse_loss + l1_loss + mse_loss_ghost_resid
+        loss = mse_loss + mse_loss_ghost_resid
 
         return sae_out, feature_acts, loss, mse_loss, l1_loss, mse_loss_ghost_resid
 
