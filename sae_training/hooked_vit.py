@@ -3,7 +3,7 @@ import torch.nn as nn
 import timm
 import math
 from transformers import LlavaForConditionalGeneration, LlavaNextProcessor, LlavaNextForConditionalGeneration
-from transformers import CLIPProcessor, CLIPModel, CLIPImageProcessor, CLIPTokenizerFast, AutoTokenizer, AutoProcessor, MllamaForConditionalGeneration
+from transformers import CLIPProcessor, CLIPModel, CLIPImageProcessor, CLIPTokenizerFast, AutoTokenizer, AutoProcessor, MllamaForConditionalGeneration, AutoModelForImageTextToText
 from typing import Callable
 from contextlib import contextmanager
 from typing import List, Union, Dict, Tuple
@@ -94,10 +94,15 @@ class HookedVisionTransformer():
     # processor.image_processor.size = {"height": 336, "width": 336}
     
     # processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
-    # model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf", attn_implementation="flash_attention_2", torch_dtype=torch.float16)
+    # model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf", torch_dtype=torch.float16)
     
-    processor = AutoProcessor.from_pretrained("meta-llama/Llama-3.2-11B-Vision-Instruct")
-    model = MllamaForConditionalGeneration.from_pretrained("meta-llama/Llama-3.2-11B-Vision-Instruct", torch_dtype=torch.bfloat16)
+    # processor = AutoProcessor.from_pretrained("meta-llama/Llama-3.2-11B-Vision-Instruct")
+    # model = MllamaForConditionalGeneration.from_pretrained("meta-llama/Llama-3.2-11B-Vision-Instruct", torch_dtype=torch.bfloat16)
+    
+    # MLLMMU/LLaVA_Vanilla
+    processor = AutoProcessor.from_pretrained("llava_vanilla_model")
+    model = AutoModelForImageTextToText.from_pretrained("llava_vanilla_model", torch_dtype=torch.bfloat16)
+    
     return model, processor
 
   def run_with_cache(self, list_of_hook_locations: List[Tuple[int,str]], *args, return_type = "output", **kwargs):

@@ -170,12 +170,11 @@ class ViTActivationsStore:
                     image = next(self.iterable_dataset)[self.image_key]
                     label = next(self.iterable_dataset)[self.label_key]
                     # label = str(label)
-                    # label = "Please describe the content of this image."
+                    # label_origin = "Please describe the content of this image."
                     label_origin = " ".join(v["value"].replace("<image>\n", "") for v in label)
                     label = label_origin
                     tokens = self.model.processor.tokenizer(label)
                     len_tokens = len(tokens.input_ids)
-                    # if not enough text, fullfill it
                     while len_tokens < self.cfg.context_size:
                        label = label + label_origin
                        tokens = self.model.processor.tokenizer(label)
@@ -188,12 +187,11 @@ class ViTActivationsStore:
                     image = next(self.iterable_dataset)[self.image_key]
                     label = next(self.iterable_dataset)[self.label_key]
                     # label = str(label)
-                    # label = "Please describe the content of this image."
+                    # label_origin = "Please describe the content of this image."
                     label_origin = " ".join(v["value"].replace("<image>\n", "") for v in label)
                     label = label_origin
                     tokens = self.model.processor.tokenizer(label)
                     len_tokens = len(tokens.input_ids)
-                    # if not enough text, fullfill it
                     while len_tokens < self.cfg.context_size:
                        label = label + label_origin
                        tokens = self.model.processor.tokenizer(label)
@@ -269,7 +267,7 @@ class ViTActivationsStore:
           # activations = activations[:,0,:] # See the forward(), foward_head() methods of the VisionTransformer class in timm. 
           # Eg "x = x[:, 0]  # class token" - the [:,0] indexes the batch dimension then the token dimension
 
-        return activations
+        return activations[:, 577:, :]
     
     
     def get_sae_batches(self):
