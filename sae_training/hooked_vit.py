@@ -100,8 +100,8 @@ class HookedVisionTransformer():
     # model = MllamaForConditionalGeneration.from_pretrained("meta-llama/Llama-3.2-11B-Vision-Instruct", torch_dtype=torch.bfloat16)
     
     # MLLMMU/LLaVA_Vanilla
-    processor = AutoProcessor.from_pretrained("llava_vanilla_model")
-    model = AutoModelForImageTextToText.from_pretrained("llava_vanilla_model", torch_dtype=torch.bfloat16)
+    processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
+    model = AutoModelForImageTextToText.from_pretrained("jiahuimbzuai/llava_vanilla_model", torch_dtype=torch.bfloat16)
     
     return model, processor
 

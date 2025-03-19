@@ -154,51 +154,51 @@ def train_sae_on_vision_transformer(
                 )
                 
             # if n_checkpoints > 0 and n_training_tokens > checkpoint_thresholds[0]:
-                # sparse_autoencoder.eval()
-                # image_file = "image1.jpg"
-                # raw_image = Image.open(image_file)
+                sparse_autoencoder.eval()
+                image_file = "image1.jpg"
+                raw_image = Image.open(image_file)
                 
-                # conversation = [
-                #     {
-                #     "role": "user",
-                #     "content": [
-                #         {"type": "text", "text": "What are these?"},
-                #         {"type": "image"},
-                #         ],
-                #     },
-                # ]
+                conversation = [
+                    {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What are these?"},
+                        {"type": "image"},
+                        ],
+                    },
+                ]
                 
-                # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-                # model_inputs = model.processor(images=raw_image, text=prompt, return_tensors='pt').to(0, torch.float16)
-                # input_ids = model_inputs.input_ids
-                # attention_mask = model_inputs.attention_mask
-                # pixel_values = model_inputs.pixel_values
-                # generated_ids = input_ids.clone()
+                prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+                model_inputs = model.processor(images=raw_image, text=prompt, return_tensors='pt').to(0, torch.float16)
+                input_ids = model_inputs.input_ids
+                attention_mask = model_inputs.attention_mask
+                pixel_values = model_inputs.pixel_values
+                generated_ids = input_ids.clone()
                 
-                # def sae_hook(activations):
-                #     activations[:,577:,:] = sparse_autoencoder(activations[:,577:,:])[0]
-                #     return (activations,)
+                def sae_hook(activations):
+                    activations[:,577:,:] = sparse_autoencoder(activations[:,577:,:])[0]
+                    return (activations,)
                         
-                # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
-                # max_token = 100
-                # for ele in range(max_token):
-                #     outputs = model.run_with_hooks(
-                #         sae_hooks,
-                #         return_type='output',
-                #         input_ids=generated_ids,
-                #         attention_mask=attention_mask,
-                #         pixel_values=pixel_values,
-                #         # image_sizes=image_sizes,
-                #     )
-                #     logits = outputs.logits[:, -1, :]  
-                #     next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
-                #     generated_ids = torch.cat([generated_ids, next_token], dim=-1)
-                #     new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
-                #     attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
-                #     torch.cuda.empty_cache()
-                # output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-                # print(output_texts)
-                # sparse_autoencoder.train()
+                sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
+                max_token = 100
+                for ele in range(max_token):
+                    outputs = model.run_with_hooks(
+                        sae_hooks,
+                        return_type='output',
+                        input_ids=generated_ids,
+                        attention_mask=attention_mask,
+                        pixel_values=pixel_values,
+                        # image_sizes=image_sizes,
+                    )
+                    logits = outputs.logits[:, -1, :]  
+                    next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
+                    generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+                    new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
+                    attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
+                    torch.cuda.empty_cache()
+                output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+                print(output_texts)
+                sparse_autoencoder.train()
 
             pbar.set_description(
                 f"{n_training_steps}| Loss {loss.item():.3f} | MSE Loss {mse_loss.item():.3f} | L1 {l1_loss.item():.3f} | Ghost Grad Loss {ghost_grad_loss.item():.3f}"

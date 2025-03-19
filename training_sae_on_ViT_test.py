@@ -37,34 +37,36 @@ os.environ["WANDB__SERVICE_WAIT"] = "300"
 cfg = ViTSAERunnerConfig(
     
     # Data Generating Function (Model + Training Distibuion)
-    class_token = True,  # True,
+    class_token = False,  # True,
     image_width = 224,
     image_height = 224,
-    model_name = "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
+    model_name = "LLaVA_Vanilla",   # "Llama-3.2-11B-Vision-Instruct",  # "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
-    block_layer = 10, # -2
-    dataset_path = "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
+    block_layer = 16, # -2
+    dataset_path = "lmms-lab/LLaVA-NeXT-Data",   # "evanarlian/imagenet_1k_resized_256",  # "lmms-lab/LLaVA-NeXT-Data",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256", 
     use_cached_activations = False,
     cached_activations_path = None,
     d_in = 4096,  # 1024,
     
     # SAE Parameters
-    expansion_factor = 32,  # 64,
+    expansion_factor = 16,  # 64,
     b_dec_init_method = "mean",
     
     # Training Parameters
     lr = 0.0004,
-    l1_coefficient = 0.00008,
+    l1_coefficient = 0.0000008, # 0.00008,
     lr_scheduler_name="constantwithwarmup",
-    batch_size = 5, # 1024,
+    batch_size = 612, # 3060, # 6120, # 12240, # 10240, # 1024,
+    store_batch_size = 100,
     lr_warm_up_steps=500,
-    total_training_tokens = 1000,   # 2621440,  # 20000, # 2_621_440,
-    n_batches_in_store = 4, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    total_training_tokens = 856800000,  # 612000, # 1000 * 612 # 10000,   # 2621440,  # 20000, # 2_621_440,
+    n_batches_in_store = 3, # 15,  这个值在config.py中用于生成store_size，这是模型中实际使用的数据量。
+    context_size = 600,
     
     # Dead Neurons and Sparsity
     use_ghost_grads=True,
     feature_sampling_method = None,
-    feature_sampling_window = 10, # 64,
+    feature_sampling_window = 64,
     dead_feature_window=64,
     dead_feature_threshold = 1e-6,
     
@@ -77,7 +79,7 @@ cfg = ViTSAERunnerConfig(
     # Misc
     device = "cuda",
     seed = 42,
-    n_checkpoints = 5,
+    n_checkpoints = 4,
     checkpoint_path = "checkpoints",
     dtype = torch.float32,
     

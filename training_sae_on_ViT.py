@@ -40,7 +40,7 @@ cfg = ViTSAERunnerConfig(
     class_token = False,  # True,
     image_width = 224,
     image_height = 224,
-    model_name = "MLLMMU/LLaVA_Vanilla",   # "Llama-3.2-11B-Vision-Instruct",  # "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
+    model_name = "LLaVA_Vanilla",   # "Llama-3.2-11B-Vision-Instruct",  # "llava-1.5-7b-hf",   # "llava-hf/llava-v1.6-vicuna-7b-hf",  # "openai/clip-vit-large-patch14",
     module_name = "resid",
     block_layer = 16, # -2
     dataset_path = "lmms-lab/LLaVA-NeXT-Data",   # "evanarlian/imagenet_1k_resized_256",   # "./dataset/full.json",   # "evanarlian/imagenet_1k_resized_256",  full.json
@@ -54,7 +54,7 @@ cfg = ViTSAERunnerConfig(
     
     # Training Parameters
     lr = 0.0004,
-    l1_coefficient = 0.00008,
+    l1_coefficient = 0.0000008,  # 0.00008,
     lr_scheduler_name="constantwithwarmup",
     batch_size = 612,  # 256, # 1024,
     store_batch_size = 100,
