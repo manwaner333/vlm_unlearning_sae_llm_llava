@@ -119,6 +119,11 @@ import torch
 import plotly.io as pio
 from typing import Union, List, Optional
 import torch
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from rouge_score import rouge_scorer
+import spacy
+import re
+nlp = spacy.load("en_core_web_sm")
 
 
 if torch.backends.mps.is_available():
@@ -223,22 +228,6 @@ def extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forge
     return forget_values_ele, forget_indices_ele, retain_values_ele, retain_indices_ele
 
 
-def formulate_prompt_with_options(question, options):
-    """
-    Formulate the prompt by combining the question and its options.
-
-    Args:
-        question (str): The question text.
-        options (dict): The options for the question (e.g., {"A": "Option A", "B": "Option B"}).
-
-    Returns:
-        str: The formulated prompt combining the question and options.
-    """
-    # Combine the question with the options
-    options_str = "\n".join([f"{key}: {value}" for key, value in options.items()])
-    prompt = f"{question}\n{options_str}"
-    return prompt
-
 
 ### load sparse autoencoder
 sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
@@ -335,183 +324,3 @@ retain_dataset = load_dataset(dataset_path, "retain_90")['train']
 
 
 ### unlearning
-def sae_hook(activations):
-    activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]
-    # activations[:,-1,:] = activations[:,-1,:]
-    return (activations,)
-
-def generate_image_text(model, conversation, image, max_token):
-    with torch.no_grad():
-        prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-        model_inputs = model.processor(images=image, text=prompt, return_tensors='pt').to(0, torch.float16)
-        input_ids = model_inputs.input_ids
-        attention_mask = model_inputs.attention_mask
-        pixel_values = model_inputs.pixel_values
-        generated_ids = input_ids.clone()
-                
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
-        print("test case:")
-        for ele in range(max_token):
-            outputs = model.run_with_hooks(
-                sae_hooks,
-                return_type='output',
-                input_ids=generated_ids,
-                attention_mask=attention_mask,
-                pixel_values=pixel_values,
-                # image_sizes=image_sizes,
-            )
-            logits = outputs.logits[:, -1, :]  
-            next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
-            generated_ids = torch.cat([generated_ids, next_token], dim=-1)
-            new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
-            attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
-            torch.cuda.empty_cache()
-
-        output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-    return output_texts
-
-def generate_text(model, conversation, max_token):
-    with torch.no_grad():
-        prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-        model_inputs = model.processor(text=prompt, return_tensors='pt').to(0, torch.float16)
-        input_ids = model_inputs.input_ids
-        attention_mask = model_inputs.attention_mask
-        # pixel_values = model_inputs.pixel_values
-        generated_ids = input_ids.clone()
-                
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
-        print("test case:")
-        for ele in range(max_token):
-            outputs = model.run_with_hooks(
-                sae_hooks,
-                return_type='output',
-                input_ids=generated_ids,
-                attention_mask=attention_mask,
-                # pixel_values=pixel_values,
-                # image_sizes=image_sizes,
-            )
-            logits = outputs.logits[:, -1, :]  
-            next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
-            generated_ids = torch.cat([generated_ids, next_token], dim=-1)
-            new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
-            attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
-            torch.cuda.empty_cache()
-
-        output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-    return output_texts
-        
-def evaluate_classification(classification_task, image, model):
-    print("################################## Classification Task Starts ##############################################")
-    print("################################## Image Textual Questions ##############################################")
-    for ele in classification_task['Image_Textual_Questions']:
-        correct_answer = ele['Correct_Answer']
-        options = ele['Options']
-        question = ele['Question']
-        
-        # combined_question = f"You will be given a Question and multiple Options. Please choose the correct answer from the Options to answer Question. The answer form is A, B, C or D. \n Question: {question} \n Options: {options}"
-        # combined_question = f"""You will be given a Question and multiple Options. Please choose the correct answer from the given Options.
-        
-        # The answer must be one of the following: A, B, C, or D. Do not provide explanations, just output a single letter.
-        
-        # Respond only with one letter: A, B, C, or D.
-
-        # Question: {question}
-        # Options: {options}
-        # Answer:
-        # """
-        
-        question_with_options = formulate_prompt_with_options(question, options)
-        combined_question = (f"{question_with_options}"
-                      f"Just give ONE letter representing the answer directly.\nAnswer:")
-        conversation = conversation_form(combined_question)
-        max_token = 2
-        output_texts = generate_image_text(model, conversation, image, max_token)
-        
-        print("Generated Answer:")
-        print(output_texts)
-
-        print("Original Answer:")
-        print(correct_answer)
-        
-    print("################################## Textual Questions ##############################################")
-    for ele in Classification_Task['Pure_Text_Questions']:
-        correct_answer = ele['Correct_Answer']
-        options = ele['Options']
-        question = ele['Question']
-        
-        question_with_options = formulate_prompt_with_options(question, options)
-        combined_question = (f"{question_with_options}"
-                      f"Just give ONE letter representing the answer directly.\nAnswer:")
-        conversation = conversation_only_text_form(combined_question)
-        max_token = 2
-        output_texts =  generate_text(model, conversation, max_token)
-        
-        print("Generated Answer:")
-        print(output_texts)
-
-        print("Original Answer:")
-        print(correct_answer)
-
-def evaluate_generation(generation_task, image, model):
-    print("################################## Generation Task Starts ##############################################")
-    for ele in generation_task:
-        ground_truth = ele['Ground_Truth']
-        type = ele['Type']
-        question = ele['Question']
-        
-        combined_question = f"""Answer the following question based on your trained knowledge in one sentence accurately in ENGLISH.
-        Question: {question}
-        Answer:
-        """
-        max_token = 20
-        if type == 'Image_Textual':
-            conversation = conversation_form(combined_question)
-            output_texts = generate_image_text(model, conversation, image, max_token)
-        else:
-            conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token)
-        
-        print("Generated Answer:")
-        print(output_texts)
-
-        print("Original Answer:")
-        print(ground_truth)
-        
-def evaluate_fill_blank(mask_task, image, model):
-    print("################################## Fill-in-the-blank Task Starts ##############################################")
-    for ele in mask_task:
-        question = ele["Question"]
-        ground_truth = ele["Ground_Truth"]
-        question_type = ele["Type"]
-        
-        combined_question = question.replace("__", "[Blank]") + "\nPlease **ONLY** provide the correct answer that should replace the [Blank]."
-        max_token = 5
-        if question_type == "Image_Textual":
-            conversation = conversation_form(combined_question)
-            output_texts = generate_image_text(model, conversation, image, max_token)
-        else:
-            conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token)
-        
-        print("Generated Answer:")
-        print(output_texts)
-
-        print("Original Answer:")
-        print(ground_truth)
-    
-    
-for index in [3]:  # range(0, 50):
-    print(f"index: {index}")
-    image = forget_dataset[index]['image']
-    biography = forget_dataset[index]['biography']
-    question = forget_dataset[index]['question']
-    answer = forget_dataset[index]['answer']
-    Classification_Task = forget_dataset[index]['Classification_Task']
-    Generation_Task = forget_dataset[index]['Generation_Task']
-    Mask_Task = forget_dataset[index]['Mask_Task']
-    
-    # evaluate_classification(Classification_Task, image, model)
-    # evaluate_generation(Generation_Task, image, model)
-    evaluate_fill_blank(Mask_Task, image, model)
-        
-       
