@@ -572,7 +572,7 @@ def evaluate_fill_blank(mask_task, image, model, processor, id):
         
         result = {
                 "id": id,
-                "question type": question_type,
+                "question_type": question_type,
                 "question": question,
                 "model_answer": assistant_response,
                 "ground_truth": ground_truth,

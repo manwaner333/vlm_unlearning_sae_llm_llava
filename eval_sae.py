@@ -576,7 +576,7 @@ def evaluate_fill_blank(mask_task, image, model, id):
         
         result = {
                 "id": id,
-                "question type": question_type,
+                "question_type": question_type,
                 "question": question,
                 "model_answer": assistant_response,
                 "ground_truth": ground_truth,
@@ -654,17 +654,17 @@ for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
     # classification_pure_text_questions_total += classification_pure_text_questions 
     
     ### generation task
-    # bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, id)
-    # generation_bleu_img_total += bleu_img
-    # generation_rouge1_img_total += rouge1_img
-    # generation_rouge2_img_total += rouge2_img
-    # generation_rougeL_img_total += rougeL_img
-    # generation_image_textual_questions_total += image_textual_questions
-    # generation_bleu_text_total += bleu_text
-    # generation_rouge1_text_total += rouge1_text
-    # generation_rouge2_text_total += rouge2_text
-    # generation_rougeL_text_total += rougeL_text
-    # generation_pure_text_questions_total += pure_text_questions
+    bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, id)
+    generation_bleu_img_total += bleu_img
+    generation_rouge1_img_total += rouge1_img
+    generation_rouge2_img_total += rouge2_img
+    generation_rougeL_img_total += rougeL_img
+    generation_image_textual_questions_total += image_textual_questions
+    generation_bleu_text_total += bleu_text
+    generation_rouge1_text_total += rouge1_text
+    generation_rouge2_text_total += rouge2_text
+    generation_rougeL_text_total += rougeL_text
+    generation_pure_text_questions_total += pure_text_questions
     
     ### fill_blank_task 
     image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions = evaluate_fill_blank(Mask_Task, image, model, id)
