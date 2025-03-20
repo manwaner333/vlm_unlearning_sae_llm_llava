@@ -41,7 +41,7 @@ def conversation_form(key):
         {
         "role": "user",
         "content": [
-            {"type": "text", "text": "What's in the picture?"},
+            {"type": "text", "text": key},
             {"type": "image"},
             ],
         },
@@ -111,58 +111,21 @@ def get_model_activations(model, inputs, cfg):
         **inputs,
     )[1][(block_layer, module_name)]
     
-    activations = activations[:,-1,:]
+    activations = activations[:,577:,:]
 
     return activations
 
 def get_all_model_activations(model, images, conversations, cfg):
-    max_batch_size = cfg.max_batch_size_for_vit_forward_pass
-    number_of_mini_batches = len(images) // max_batch_size
-    remainder = len(images) % max_batch_size
-    sae_batches = []
-    for mini_batch in trange(number_of_mini_batches, desc = "Dashboard: forward pass images through ViT"):
-        image_batch = images[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size]
-        conversation_batch = conversations[mini_batch*max_batch_size : (mini_batch+1)*max_batch_size]
-        # inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
-        # conversation = [
-        #     {
-        #     "role": "user",
-        #     "content": [
-        #         {"type": "text", "text": "What is shown in this image?"},
-        #         {"type": "image"},
-        #         ],
-        #     },
-        # ]
-        # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-        batch_of_prompts = []
-        for ele in conversation_batch:
-            batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
-        
-        inputs = model.processor(images=image_batch, text=batch_of_prompts, padding=True, return_tensors="pt").to(model.model.device)
-        sae_batches.append(get_model_activations(model, inputs, cfg))
     
-    if remainder>0:
-        image_batch = images[-remainder:]
-        conversation_batch = conversations[-remainder:]
-        # inputs = model.processor(images=image_batch, text = "", return_tensors="pt", padding = True).to(model.model.device)
-        # conversation = [
-        #     {
-        #     "role": "user",
-        #     "content": [
-        #         {"type": "text", "text": "What is shown in this image?"},
-        #         {"type": "image"},
-        #         ],
-        #     },
-        # ]
-        # prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
-        batch_of_prompts = []
-        for ele in conversation_batch:
-            batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
-            
-        inputs = model.processor(images=image_batch, text=batch_of_prompts, padding=True, return_tensors="pt").to(model.model.device)
-        sae_batches.append(get_model_activations(model, inputs, cfg))
-        
-    sae_batches = torch.cat(sae_batches, dim = 0)
+    batch_of_prompts = []
+    for ele in conversations:
+        batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
+    
+    inputs = model.processor(images=images, text=batch_of_prompts, padding=True, return_tensors="pt").to(cfg.device)
+    sae_batches = get_model_activations(model, inputs, cfg)   
+    
+    # sae_batches1 = torch.cat(sae_batches, dim = 0)
+    sae_batches = sae_batches.reshape(-1, cfg.d_in)
     sae_batches = sae_batches.to(cfg.device)
     return sae_batches
 
@@ -253,36 +216,13 @@ def get_feature_data(
     
     dataset = dataset.select(range(1000))
     
-    # data_path = sparse_autoencoder.cfg.dataset_path
-    # try:
-    #     with open(data_path, "r") as f:
-    #         data_json = json.load(f)
-    # except:
-    #     with open(data_path, "r") as f:
-    #         data_json = [json.loads(line) for line in f.readlines()]
-    # data_json = data_json[:400]
-    
-    # dataset_dict = {
-    #     "image": [item["image_path"] for item in data_json],
-    #     "label": [item["name"] for item in data_json]
-    # }
-    
-    # features = Features({
-    #     "image": dataset_Image(), 
-    #     "label": Value("string")
-    # })
-    
-    # dataset = Dataset.from_dict(dataset_dict, features=features)
-    
-    # if sparse_autoencoder.cfg.dataset_path=="cifar100": # Need to put this in the cfg
-    #     image_key = 'img'
-    # else:
-    #     image_key = 'image'
-    
     image_key = 'image'
-    image_label = 'label' 
+    image_label = 'conversations' 
     dataset = dataset.shuffle(seed = seed)
     directory = "dashboard"
+    
+    all_tokens = []
+    output_file = "dataset_output_tokens.json"
     
     if load_pretrained:
         max_activating_image_indices = torch.load(f'{directory}/max_activating_image_indices.pt')
@@ -295,15 +235,31 @@ def get_feature_data(
         number_of_images_processed = 0
         while number_of_images_processed < number_of_images:
             torch.cuda.empty_cache()
-            try:
-                images = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_key]
-                labels = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_label]
-                conversations = [conversation_form(ele) for ele in labels]
-            except StopIteration:
-                print('All of the images in the dataset have been processed!')
-                break
-            
-            model_activations = get_all_model_activations(model, images, conversations, sparse_autoencoder.cfg) # tensor of size [batch, d_resid]
+            batch_of_images = []
+            batch_of_conversations = []
+            for i in range(max_number_of_images_per_iteration):
+                # images = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_key]
+                # labels = dataset[number_of_images_processed:number_of_images_processed + max_number_of_images_per_iteration][image_label]
+                image = dataset[number_of_images_processed+i][image_key]
+                label = dataset[number_of_images_processed+i][image_label]
+                label_origin = " ".join(v["value"].replace("<image>\n", "") for v in label)
+                label = label_origin
+                tokens = model.processor.tokenizer(label)
+                len_tokens = len(tokens.input_ids)
+                while len_tokens < sparse_autoencoder.cfg.context_size:
+                    label = label + label_origin
+                    tokens = model.processor.tokenizer(label)
+                    len_tokens = len(tokens.input_ids)
+                final_tokens = tokens.input_ids[0:sparse_autoencoder.cfg.context_size]
+                all_tokens.append(final_tokens)
+                final_text = model.processor.tokenizer.decode(final_tokens)
+                batch_of_images.append(image)
+                batch_of_conversations.append(conversation_form(final_text))
+            with open(output_file, "a", encoding="utf-8") as f:
+                json.dump(all_tokens, f)
+                f.write("\n")  
+               
+            model_activations = get_all_model_activations(model, batch_of_images, batch_of_conversations, sparse_autoencoder.cfg) # tensor of size [batch, d_resid]
             sae_activations = get_sae_activations(model_activations, sparse_autoencoder).transpose(0,1) # tensor of size [feature_idx, batch]
             del model_activations
             sae_mean_acts += sae_activations.sum(dim = 1)
@@ -311,7 +267,9 @@ def get_feature_data(
             
             # Convert the images list to a torch tensor
             values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1)   # 1  # sizes [sae_idx, images] is the size of this matrix correct?
-            indices += number_of_images_processed
+            # indices += number_of_images_processed
+            number = int(sae_activations.shape[1]/max_number_of_images_per_iteration)
+            indices += number_of_images_processed * number 
             
             max_activating_image_values, max_activating_image_indices = get_new_top_k(max_activating_image_values, max_activating_image_indices, values, indices, number_of_max_activating_images)
             

@@ -278,7 +278,7 @@ def generate_text(model, processor, conversation, max_token):
         output_texts = processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
     return output_texts
         
-def evaluate_classification(classification_task, image, model, processor, id):
+def evaluate_classification(classification_task, image, model, processor, id, output_folder, output_file):
     print("################################## Classification Task Starts ##############################################")
     print("################################## Image Textual Questions ##############################################")
     image_textual_correct = 0
@@ -335,7 +335,7 @@ def evaluate_classification(classification_task, image, model, processor, id):
         
         result = {
                 "id": id,
-                "question type": "Image_Textual",
+                "question_type": "Image_Textual",
                 "question": question,
                 "model_answer": predicted_answer,
                 "ground_truth": correct_answer,
@@ -352,7 +352,7 @@ def evaluate_classification(classification_task, image, model, processor, id):
         
         
     print("################################## Textual Questions ##############################################")
-    for ele in Classification_Task['Pure_Text_Questions']:
+    for ele in classification_task['Pure_Text_Questions']:
         correct_answer = ele['Correct_Answer']
         options = ele['Options']
         question = ele['Question']
@@ -389,7 +389,7 @@ def evaluate_classification(classification_task, image, model, processor, id):
         
         result = {
                 "id": id,
-                "question type": "Pure_Text",
+                "question_type": "Pure_Text",
                 "question": question,
                 "model_answer": assistant_response,
                 "ground_truth": correct_answer,
@@ -430,7 +430,7 @@ def compute_bleu(ground_truth, predicted_answer):
     return bleu_score
 
 
-def evaluate_generation(generation_task, image, model, processor, id):
+def evaluate_generation(generation_task, image, model, processor, id, output_folder, output_file):
     print("################################## Generation Task Starts ##############################################")
     
     rouge_scorer_obj = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
@@ -474,7 +474,7 @@ def evaluate_generation(generation_task, image, model, processor, id):
             
         print("Prompt: ", combined_question)
         print("Question: ", question)
-        print("question type: ",  type)
+        print("question_type: ",  type)
         print("Model Answer: ", predicted_answer)
         print("Correct Answer: ", ground_truth)
         print("\n")
@@ -502,7 +502,7 @@ def evaluate_generation(generation_task, image, model, processor, id):
                 
         result = {
             "id": id,
-            "question type": type,
+            "question_type": type,
             "question": question,
             "model_answer": predicted_answer,
             "ground_truth": ground_truth,
@@ -527,7 +527,7 @@ def evaluate_generation(generation_task, image, model, processor, id):
         
         
         
-def evaluate_fill_blank(mask_task, image, model, processor, id):
+def evaluate_fill_blank(mask_task, image, model, processor, id, output_folder, output_file):
     print("################################## Fill-in-the-blank Task Starts ##############################################")
     image_textual_correct = 0
     image_textual_questions = 0
@@ -590,13 +590,170 @@ def evaluate_fill_blank(mask_task, image, model, processor, id):
     
     return image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions    
         
- 
+
+def eval_fill_blank_task(forget_dataset, model, processor, output_folder, output_file):
+    fill_blank_image_textual_correct_total = 0
+    fill_blank_image_textual_questions_total = 0
+    fill_blank_pure_text_correct_total = 0
+    fill_blank_pure_text_questions_total = 0
+    
+    for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
+        id = forget_dataset[index]['ID']
+        print(f"ID: {id}")
+        image = forget_dataset[index]['image']
+        biography = forget_dataset[index]['biography']
+        question = forget_dataset[index]['question']
+        answer = forget_dataset[index]['answer']
+        Classification_Task = forget_dataset[index]['Classification_Task']
+        Generation_Task = forget_dataset[index]['Generation_Task']
+        Mask_Task = forget_dataset[index]['Mask_Task']
+        
+        # ### fill_blank_task 
+        image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions = evaluate_fill_blank(Mask_Task, image, model, processor, id, output_folder, output_file)
+        fill_blank_image_textual_correct_total += image_textual_correct
+        fill_blank_image_textual_questions_total += image_textual_questions
+        fill_blank_pure_text_correct_total += pure_text_correct
+        fill_blank_pure_text_questions_total += pure_text_questions
+    
+    
+    ### fill blank task
+    fill_blank_image_textual_accuracy = (fill_blank_image_textual_correct_total / fill_blank_image_textual_questions_total) * 100 if fill_blank_image_textual_questions_total > 0 else 0
+    fill_blank_pure_text_accuracy = (fill_blank_pure_text_correct_total / fill_blank_pure_text_questions_total) * 100 if fill_blank_pure_text_questions_total > 0 else 0
+
+    print(f"total_image_textual_correct: {fill_blank_image_textual_correct_total}")
+    print(f"total_image_textual_questions: {fill_blank_image_textual_questions_total}")
+    print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}")
+    print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}")
+    print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%")
+    print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%") 
+    
+    with open(f'{output_folder}/{output_file}_fill_blank_results_official.txt', 'w', encoding="utf-8") as file:
+        print(f"total_image_textual_correct: {fill_blank_image_textual_correct_total}", file=file)
+        print(f"total_image_textual_questions: {fill_blank_image_textual_questions_total}", file=file)
+        print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}", file=file)
+        print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}", file=file)
+        print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%", file=file)
+        print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%", file=file)
+    
+        
+    
+
+def eval_classification_task(forget_dataset, model, processor, output_folder, output_file):
+    classification_image_textual_correct_total = 0
+    classification_image_textual_questions_total = 0
+    classification_pure_text_correct_total = 0
+    classification_pure_text_questions_total = 0
+    
+    
+    for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
+        id = forget_dataset[index]['ID']
+        print(f"ID: {id}")
+        image = forget_dataset[index]['image']
+        biography = forget_dataset[index]['biography']
+        question = forget_dataset[index]['question']
+        answer = forget_dataset[index]['answer']
+        Classification_Task = forget_dataset[index]['Classification_Task']
+        Generation_Task = forget_dataset[index]['Generation_Task']
+        Mask_Task = forget_dataset[index]['Mask_Task']
+        
+        ### classification_task
+        classification_image_textual_correct, classification_image_textual_questions, classification_pure_text_correct, classification_pure_text_questions = evaluate_classification(Classification_Task, image, model, processor, id, output_folder, output_file)
+        classification_image_textual_correct_total += classification_image_textual_correct
+        classification_image_textual_questions_total += classification_image_textual_questions
+        classification_pure_text_correct_total += classification_pure_text_correct
+        classification_pure_text_questions_total += classification_pure_text_questions 
+    
+    
+    classification_image_textual_accuracy = (classification_image_textual_correct_total / classification_image_textual_questions_total) * 100 if classification_image_textual_questions_total > 0 else 0
+    classification_pure_text_accuracy = (classification_pure_text_correct_total / classification_pure_text_questions_total) * 100 if classification_pure_text_questions_total > 0 else 0
+
+
+    print(f"classification_image_textual_correct_total: {classification_image_textual_correct_total}")
+    print(f"classification_image_textual_questions_total: {classification_image_textual_questions_total}")
+    print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}")
+    print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}")
+        
+    print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%")
+    print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%")
+    
+    with open(f'{output_folder}/{output_file}_classification_results_official.txt', 'w', encoding="utf-8") as file:
+        print(f"classification_image_textual_correct_total: {classification_image_textual_correct_total}", file=file)
+        print(f"classification_image_textual_questions_total: {classification_image_textual_questions_total}", file=file)
+        print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}", file=file)
+        print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}", file=file)
+            
+        print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%", file=file)
+        print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%", file=file)   
+        
+    
+
+
+
+def eval_generation_task(forget_dataset, model, processor, output_folder, output_file):
+    generation_bleu_img_total = 0
+    generation_rouge1_img_total = 0
+    generation_rouge2_img_total = 0
+    generation_rougeL_img_total = 0
+    generation_image_textual_questions_total = 0
+    generation_bleu_text_total = 0
+    generation_rouge1_text_total = 0
+    generation_rouge2_text_total = 0
+    generation_rougeL_text_total = 0
+    generation_pure_text_questions_total = 0 
+    
+    
+    for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
+        id = forget_dataset[index]['ID']
+        print(f"ID: {id}")
+        image = forget_dataset[index]['image']
+        biography = forget_dataset[index]['biography']
+        question = forget_dataset[index]['question']
+        answer = forget_dataset[index]['answer']
+        Classification_Task = forget_dataset[index]['Classification_Task']
+        Generation_Task = forget_dataset[index]['Generation_Task']
+        Mask_Task = forget_dataset[index]['Mask_Task']
+        
+        ### generation task
+        bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, processor, id, output_folder, output_file)
+        generation_bleu_img_total += bleu_img
+        generation_rouge1_img_total += rouge1_img
+        generation_rouge2_img_total += rouge2_img
+        generation_rougeL_img_total += rougeL_img
+        generation_image_textual_questions_total += image_textual_questions
+        generation_bleu_text_total += bleu_text
+        generation_rouge1_text_total += rouge1_text
+        generation_rouge2_text_total += rouge2_text
+        generation_rougeL_text_total += rougeL_text
+        generation_pure_text_questions_total += pure_text_questions
+    
+
+    avg_scores = {}
+    if generation_image_textual_questions_total > 0:
+        avg_scores.update({
+            "Average ROUGE-1 (Image_Textual)": generation_rouge1_img_total / generation_image_textual_questions_total,
+            "Average ROUGE-2 (Image_Textual)": generation_rouge2_img_total / generation_image_textual_questions_total,
+            "Average ROUGE-L (Image_Textual)": generation_rougeL_img_total / generation_image_textual_questions_total,
+            "Average BLEU (Image_Textual)": generation_bleu_img_total / generation_image_textual_questions_total
+        })
+
+    if generation_pure_text_questions_total > 0:
+        avg_scores.update({
+            "Average ROUGE-1 (Pure_Text)": generation_rouge1_text_total / generation_pure_text_questions_total,
+            "Average ROUGE-2 (Pure_Text)": generation_rouge2_text_total / generation_pure_text_questions_total,
+            "Average ROUGE-L (Pure_Text)": generation_rougeL_text_total / generation_pure_text_questions_total,
+            "Average BLEU (Pure_Text)": generation_bleu_text_total / generation_pure_text_questions_total
+        })
+
+    for metric, score in avg_scores.items():
+        print(f"{metric}: {score}")  
+    
+    with open(f'{output_folder}/{output_file}_generation_results_official.txt', 'w', encoding="utf-8") as file:
+        for metric, score in avg_scores.items():
+            print(f"{metric}: {score}", file=file)   
+     
  
 
 ### load sparse autoencoder
-# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
-# sparse_autoencoder, model = load_sae_model(sae_path)
-# sparse_autoencoder.eval()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
 model = AutoModelForImageTextToText.from_pretrained("jiahuimbzuai/llava_vanilla_model", torch_dtype=torch.bfloat16, device_map="auto")
@@ -605,120 +762,22 @@ model.eval()
  
 ### load dataset
 dataset_path = "MLLMMU/MLLMU-Bench"
-forget_dataset = load_dataset(dataset_path, "forget_10")['train']
-retain_dataset = load_dataset(dataset_path, "retain_90")['train']
+forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
+retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 
   
 
-fill_blank_image_textual_correct_total = 0
-fill_blank_image_textual_questions_total = 0
-fill_blank_pure_text_correct_total = 0
-fill_blank_pure_text_questions_total = 0 
-output_folder = 'result/llava_1.5_7b_vanilla_model_forget_10'
-output_file = 'llava_1.5_7b_vanilla_model_forget_10'
+
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_10'
+# output_file = 'llava_1.5_7b_vanilla_model_forget_10'
+
+output_folder = 'result/llava_1.5_7b_vanilla_model_retain_90'
+output_file = 'llava_1.5_7b_vanilla_model_retain_90'
+
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
-    
-classification_image_textual_correct_total = 0
-classification_image_textual_questions_total = 0
-classification_pure_text_correct_total = 0
-classification_pure_text_questions_total = 0 
-
-generation_bleu_img_total = 0
-generation_rouge1_img_total = 0
-generation_rouge2_img_total = 0
-generation_rougeL_img_total = 0
-generation_image_textual_questions_total = 0
-generation_bleu_text_total = 0
-generation_rouge1_text_total = 0
-generation_rouge2_text_total = 0
-generation_rougeL_text_total = 0
-generation_pure_text_questions_total = 0   
-
-   
-for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
-    id = forget_dataset[index]['ID']
-    print(f"ID: {id}")
-    image = forget_dataset[index]['image']
-    biography = forget_dataset[index]['biography']
-    question = forget_dataset[index]['question']
-    answer = forget_dataset[index]['answer']
-    Classification_Task = forget_dataset[index]['Classification_Task']
-    Generation_Task = forget_dataset[index]['Generation_Task']
-    Mask_Task = forget_dataset[index]['Mask_Task']
-    
-    ### classification_task
-    # classification_image_textual_correct, classification_image_textual_questions, classification_pure_text_correct, classification_pure_text_questions = evaluate_classification(Classification_Task, image, model, processor, id)
-    # classification_image_textual_correct_total += classification_image_textual_correct
-    # classification_image_textual_questions_total += classification_image_textual_questions
-    # classification_pure_text_correct_total += classification_pure_text_correct
-    # classification_pure_text_questions_total += classification_pure_text_questions 
-    
-    ### generation task
-    # bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, processor, id)
-    # generation_bleu_img_total += bleu_img
-    # generation_rouge1_img_total += rouge1_img
-    # generation_rouge2_img_total += rouge2_img
-    # generation_rougeL_img_total += rougeL_img
-    # generation_image_textual_questions_total += image_textual_questions
-    # generation_bleu_text_total += bleu_text
-    # generation_rouge1_text_total += rouge1_text
-    # generation_rouge2_text_total += rouge2_text
-    # generation_rougeL_text_total += rougeL_text
-    # generation_pure_text_questions_total += pure_text_questions
-    
-    # ### fill_blank_task 
-    image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions = evaluate_fill_blank(Mask_Task, image, model, processor, id)
-    fill_blank_image_textual_correct_total += image_textual_correct
-    fill_blank_image_textual_questions_total += image_textual_questions
-    fill_blank_pure_text_correct_total += pure_text_correct
-    fill_blank_pure_text_questions_total += pure_text_questions
-        
-
-### generation task
-# avg_scores = {}
-# if generation_image_textual_questions_total > 0:
-#     avg_scores.update({
-#         "Average ROUGE-1 (Image_Textual)": generation_rouge1_img_total / generation_image_textual_questions_total,
-#         "Average ROUGE-2 (Image_Textual)": generation_rouge2_img_total / generation_image_textual_questions_total,
-#         "Average ROUGE-L (Image_Textual)": generation_rougeL_img_total / generation_image_textual_questions_total,
-#         "Average BLEU (Image_Textual)": generation_bleu_img_total / generation_image_textual_questions_total
-#     })
-
-# if generation_pure_text_questions_total > 0:
-#     avg_scores.update({
-#         "Average ROUGE-1 (Pure_Text)": generation_rouge1_text_total / generation_pure_text_questions_total,
-#         "Average ROUGE-2 (Pure_Text)": generation_rouge2_text_total / generation_pure_text_questions_total,
-#         "Average ROUGE-L (Pure_Text)": generation_rougeL_text_total / generation_pure_text_questions_total,
-#         "Average BLEU (Pure_Text)": generation_bleu_text_total / generation_pure_text_questions_total
-#     })
-
-# for metric, score in avg_scores.items():
-#     print(f"{metric}: {score}")  
 
 
-
-### classification task
-# classification_image_textual_accuracy = (classification_image_textual_correct_total / classification_image_textual_questions_total) * 100 if classification_image_textual_questions_total > 0 else 0
-# classification_pure_text_accuracy = (classification_pure_text_correct_total / classification_pure_text_questions_total) * 100 if classification_pure_text_questions_total > 0 else 0
-
-
-# print(f"classification_image_textual_correct_total: {classification_image_textual_correct_total}")
-# print(f"classification_image_textual_questions_total: {classification_image_textual_questions_total}")
-# print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}")
-# print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}")
-    
-# print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%")
-# print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%")
-
-
-### fill blank task
-fill_blank_image_textual_accuracy = (fill_blank_image_textual_correct_total / fill_blank_image_textual_questions_total) * 100 if fill_blank_image_textual_questions_total > 0 else 0
-fill_blank_pure_text_accuracy = (fill_blank_pure_text_correct_total / fill_blank_pure_text_questions_total) * 100 if fill_blank_pure_text_questions_total > 0 else 0
-
-print(f"total_image_textual_correct: {fill_blank_image_textual_correct_total}")
-print(f"total_image_textual_questions: {fill_blank_image_textual_questions_total}")
-print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}")
-print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}")
-print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%")
-print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%")
+eval_fill_blank_task(retain_dataset_90, model, processor, output_folder, output_file)         # forget_dataset_10
+eval_classification_task(retain_dataset_90, model, processor, output_folder, output_file)
+eval_generation_task(retain_dataset_90, model, processor, output_folder, output_file)

@@ -230,8 +230,8 @@ def extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forge
 
 
 ### load sparse autoencoder
-sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
-# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/804e09f0776b759f6c0949466f9c8ff218e314ea/65908116_pre_trained_llava_sae_language_model_65536.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
 sparse_autoencoder, model = load_sae_model(sae_path)
 sparse_autoencoder.eval()
 
@@ -241,86 +241,86 @@ forget_dataset = load_dataset(dataset_path, "forget_10")['train']
 retain_dataset = load_dataset(dataset_path, "retain_90")['train']
 
 ### generate sae features
-# hook_name = "hook_hidden_post"
-# k = 30
-# forget_values = []
-# forget_indices = []
-# retain_values = []
-# retain_indices = []
+hook_name = "hook_hidden_post"
+k = 20
+forget_values = []
+forget_indices = []
+retain_values = []
+retain_indices = []
 
-# for forget_index in range(3, 4):
-#     retain_index = random.randint(0, 450)
-#     forget_values_ele, forget_indices_ele, retain_values_ele, retain_indices_ele = extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forget_index, retain_index, k, hook_name)
-#     forget_values.extend(forget_values_ele[0].cpu().numpy().tolist())
-#     forget_indices.extend(forget_indices_ele[0].cpu().numpy().tolist())
-#     retain_values.extend(retain_values_ele[0].cpu().numpy().tolist())
-#     retain_indices.extend(retain_indices_ele[0].cpu().numpy().tolist())
+for forget_index in range(0, 50):
+    retain_index = random.randint(0, 450)
+    forget_values_ele, forget_indices_ele, retain_values_ele, retain_indices_ele = extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forget_index, retain_index, k, hook_name)
+    forget_values.extend(forget_values_ele[0].cpu().numpy().tolist())
+    forget_indices.extend(forget_indices_ele[0].cpu().numpy().tolist())
+    retain_values.extend(retain_values_ele[0].cpu().numpy().tolist())
+    retain_indices.extend(retain_indices_ele[0].cpu().numpy().tolist())
 
-# print(len(forget_values))
-# print(len(forget_indices))
-# print(len(retain_values))
-# print(len(retain_indices))
+print(len(forget_values))
+print(len(forget_indices))
+print(len(retain_values))
+print(len(retain_indices))
 
 
-# with open("dataset/forget_values.pkl", "wb") as f:
-#     pickle.dump(forget_values, f)
+with open("dataset/forget_values.pkl", "wb") as f:
+    pickle.dump(forget_values, f)
 
-# with open("dataset/forget_indices.pkl", "wb") as f:
-#     pickle.dump(forget_indices, f)
+with open("dataset/forget_indices.pkl", "wb") as f:
+    pickle.dump(forget_indices, f)
 
-# with open("dataset/retain_values.pkl", "wb") as f:
-#     pickle.dump(retain_values, f)
+with open("dataset/retain_values.pkl", "wb") as f:
+    pickle.dump(retain_values, f)
 
-# with open("dataset/retain_indices.pkl", "wb") as f:
-#     pickle.dump(retain_indices, f)
+with open("dataset/retain_indices.pkl", "wb") as f:
+    pickle.dump(retain_indices, f)
     
 
-# ## choose sae_features
-# with open("dataset/forget_values.pkl", "rb") as f:
-#     forget_values = pickle.load(f)
+## upload sae_features
+with open("dataset/forget_values.pkl", "rb") as f:
+    forget_values = pickle.load(f)
 
-# with open("dataset/forget_indices.pkl", "rb") as f:
-#     forget_indices = pickle.load(f)
+with open("dataset/forget_indices.pkl", "rb") as f:
+    forget_indices = pickle.load(f)
 
-# with open("dataset/retain_values.pkl", "rb") as f:
-#     retain_values = pickle.load(f)
+with open("dataset/retain_values.pkl", "rb") as f:
+    retain_values = pickle.load(f)
 
-# with open("dataset/retain_indices.pkl", "rb") as f:
-#     retain_indices = pickle.load(f)
+with open("dataset/retain_indices.pkl", "rb") as f:
+    retain_indices = pickle.load(f)
     
 
-# # forget
-# forget_index_value_dict = {}
-# for idx, val in zip(forget_indices, forget_values):
-#     if idx in forget_index_value_dict:
-#         forget_index_value_dict[idx] = max(forget_index_value_dict[idx], val)
-#     else:
-#         forget_index_value_dict[idx] = val
-# unique_forget_indices = list(forget_index_value_dict.keys())
-# unique_forget_values = list(forget_index_value_dict.values())
-# print(len(unique_forget_indices))
+## forget
+forget_index_value_dict = {}
+for idx, val in zip(forget_indices, forget_values):
+    if idx in forget_index_value_dict:
+        forget_index_value_dict[idx] = max(forget_index_value_dict[idx], val)
+    else:
+        forget_index_value_dict[idx] = val
+unique_forget_indices = list(forget_index_value_dict.keys())
+unique_forget_values = list(forget_index_value_dict.values())
+print(f"number of unique forget sae features: {len(unique_forget_indices)}")
 
-# # retain
-# retain_index_value_dict = {}
-# for idx, val in zip(retain_indices, retain_values):
-#     if idx in retain_index_value_dict:
-#         retain_index_value_dict[idx] = max(retain_index_value_dict[idx], val)
-#     else:
-#         retain_index_value_dict[idx] = val
-# unique_retain_indices = list(retain_index_value_dict.keys())
-# unique_retain_values = list(retain_index_value_dict.values())
-# print(len(unique_retain_indices))
-
-# retain_set = set(unique_retain_indices)
-# exclusive_forget_indices = []
-# exclusive_forget_values = []
-# for idx, val in zip(unique_forget_indices, unique_forget_values):
-#     if idx not in retain_set:
-#         exclusive_forget_indices.append(idx)
-#         exclusive_forget_values.append(val)
-
-# print(exclusive_forget_indices)
-# print(exclusive_forget_values)
+# retain
+retain_index_value_dict = {}
+for idx, val in zip(retain_indices, retain_values):
+    if idx in retain_index_value_dict:
+        retain_index_value_dict[idx] = max(retain_index_value_dict[idx], val)
+    else:
+        retain_index_value_dict[idx] = val
+unique_retain_indices = list(retain_index_value_dict.keys())
+unique_retain_values = list(retain_index_value_dict.values())
+print(f"number of unique retain sae features: {len(unique_retain_indices)}")
 
 
-### unlearning
+retain_set = set(unique_retain_indices)
+exclusive_forget_indices = []
+exclusive_forget_values = []
+for idx, val in zip(unique_forget_indices, unique_forget_values):
+    if idx not in retain_set:
+        exclusive_forget_indices.append(idx)
+        exclusive_forget_values.append(val)
+
+print(exclusive_forget_indices)
+print(exclusive_forget_values)
+
+

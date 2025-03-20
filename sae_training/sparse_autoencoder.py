@@ -107,8 +107,10 @@ class SparseAutoencoder(HookedRootModule):
         # topk_indices = [64653, 21984, 25916, 6979, 24130, 54432, 21663, 3004, 43330, 31402, 38531, 57908, 19696, 9198]
         # topk_indices = [24130, 22401, 46769, 43330, 25916, 54432, 36406, 56676, 18824, 57908, 19696, 50143]
         # topk_indices = [37350, 39867, 38226, 37830, 64653, 45425, 34041, 21663, 22401, 10571, 7995]
+        # topk_indices = [39356, 46703, 48320, 53199, 35395]
+        # topk_indices = [37665, 40447, 149, 61562, 32467, 65173]
         # for index in topk_indices:
-        #     feature_acts[0, index] = feature_acts[0, index] * (-5.0)
+        #     feature_acts[0, index] = feature_acts[0, index] * (-1.5)
         
         sae_out = self.hook_sae_out(
             einops.einsum(
