@@ -111,15 +111,20 @@ def get_model_activations(model, inputs, cfg):
         **inputs,
     )[1][(block_layer, module_name)]
     
-    activations = activations[:,577:,:]
+    activations = activations[:,575:,:]
 
     return activations
 
-def get_all_model_activations(model, images, conversations, cfg):
+def get_all_model_activations(model, images, conversations, cfg, output_file):
     
     batch_of_prompts = []
     for ele in conversations:
         batch_of_prompts.append(model.processor.apply_chat_template(ele, add_generation_prompt=True))
+    
+    # all_tokens = model.processor.tokenizer(batch_of_prompts).input_ids
+    # with open(output_file, "a", encoding="utf-8") as f:
+    #     json.dump(all_tokens, f)
+    #     f.write("\n")  
     
     inputs = model.processor(images=images, text=batch_of_prompts, padding=True, return_tensors="pt").to(cfg.device)
     sae_batches = get_model_activations(model, inputs, cfg)   
@@ -127,7 +132,7 @@ def get_all_model_activations(model, images, conversations, cfg):
     # sae_batches1 = torch.cat(sae_batches, dim = 0)
     sae_batches = sae_batches.reshape(-1, cfg.d_in)
     sae_batches = sae_batches.to(cfg.device)
-    return sae_batches
+    return sae_batches, batch_of_prompts
 
 def get_sae_activations(model_activaitons, sparse_autoencoder):
     hook_name = "hook_hidden_post"
@@ -175,12 +180,15 @@ def save_highest_activating_images(max_activating_image_indices, max_activating_
                 image = dataset[int(max_activating_image_indices[neuron, max_activating_image].item())][image_key]
                 image.save(f"{directory}/{neuron}/{max_activating_image}_{int(max_activating_image_indices[neuron, max_activating_image].item())}_{max_activating_image_values[neuron, max_activating_image].item():.4g}.png", "PNG")
 
-def get_new_top_k(first_values, first_indices, second_values, second_indices, k):
+
+def get_new_top_k(first_values, first_indices, first_token_ids, second_values, second_indices, second_token_ids, k):  
     total_values = torch.cat([first_values, second_values], dim = 1)
     total_indices = torch.cat([first_indices, second_indices], dim = 1)
+    total_token_ids =  torch.cat([first_token_ids, second_token_ids], dim=1)
     new_values, indices_of_indices = topk(total_values, k=k, dim=1)
     new_indices = torch.gather(total_indices, 1, indices_of_indices)
-    return new_values, new_indices
+    new_token_ids = torch.gather(total_token_ids, 1, indices_of_indices)
+    return new_values, new_indices, new_token_ids
 
 @torch.inference_mode()
 def get_feature_data(
@@ -214,15 +222,15 @@ def get_feature_data(
     
     dataset = load_dataset(sparse_autoencoder.cfg.dataset_path, split="train")
     
-    dataset = dataset.select(range(1000))
+    dataset = dataset.select(range(number_of_images))
     
     image_key = 'image'
     image_label = 'conversations' 
     dataset = dataset.shuffle(seed = seed)
     directory = "dashboard"
     
-    all_tokens = []
-    output_file = "dataset_output_tokens.json"
+    # all_tokens = []
+    output_file = f"{directory}/dataset_output_tokens.json"
     
     if load_pretrained:
         max_activating_image_indices = torch.load(f'{directory}/max_activating_image_indices.pt')
@@ -230,11 +238,13 @@ def get_feature_data(
     else:
         max_activating_image_indices = torch.zeros([sparse_autoencoder.cfg.d_sae, number_of_max_activating_images]).to(sparse_autoencoder.cfg.device)
         max_activating_image_values = torch.zeros([sparse_autoencoder.cfg.d_sae, number_of_max_activating_images]).to(sparse_autoencoder.cfg.device)
+        max_activating_token_ids = torch.zeros([sparse_autoencoder.cfg.d_sae, number_of_max_activating_images], dtype=torch.int64).to(sparse_autoencoder.cfg.device)
         sae_sparsity = torch.zeros([sparse_autoencoder.cfg.d_sae]).to(sparse_autoencoder.cfg.device)
         sae_mean_acts = torch.zeros([sparse_autoencoder.cfg.d_sae]).to(sparse_autoencoder.cfg.device)
         number_of_images_processed = 0
         while number_of_images_processed < number_of_images:
             torch.cuda.empty_cache()
+            print(f"number_of_images_processed: {number_of_images_processed}")
             batch_of_images = []
             batch_of_conversations = []
             for i in range(max_number_of_images_per_iteration):
@@ -249,34 +259,53 @@ def get_feature_data(
                 while len_tokens < sparse_autoencoder.cfg.context_size:
                     label = label + label_origin
                     tokens = model.processor.tokenizer(label)
-                    len_tokens = len(tokens.input_ids)
+                    len_tokens = len(tokens.input_ids)  
                 final_tokens = tokens.input_ids[0:sparse_autoencoder.cfg.context_size]
-                all_tokens.append(final_tokens)
+                # all_tokens.append(final_tokens)
                 final_text = model.processor.tokenizer.decode(final_tokens)
                 batch_of_images.append(image)
                 batch_of_conversations.append(conversation_form(final_text))
-            with open(output_file, "a", encoding="utf-8") as f:
-                json.dump(all_tokens, f)
-                f.write("\n")  
-               
-            model_activations = get_all_model_activations(model, batch_of_images, batch_of_conversations, sparse_autoencoder.cfg) # tensor of size [batch, d_resid]
+            
+            model_activations, batch_of_prompts = get_all_model_activations(model, batch_of_images, batch_of_conversations, sparse_autoencoder.cfg, output_file) # tensor of size [batch, d_resid]
             sae_activations = get_sae_activations(model_activations, sparse_autoencoder).transpose(0,1) # tensor of size [feature_idx, batch]
             del model_activations
             sae_mean_acts += sae_activations.sum(dim = 1)
             sae_sparsity += (sae_activations>0).sum(dim = 1)
+            all_tokens = model.processor.tokenizer(batch_of_prompts).input_ids
+            all_tokens_np = np.array(all_tokens)     
+            flat_all_tokens = torch.from_numpy(all_tokens_np.ravel()).long().unsqueeze(0).repeat(65536, 1).to(sparse_autoencoder.cfg.device)
             
             # Convert the images list to a torch tensor
             values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1)   # 1  # sizes [sae_idx, images] is the size of this matrix correct?
+            selected_tokens = torch.gather(flat_all_tokens, dim=1, index=indices)
             # indices += number_of_images_processed
-            number = int(sae_activations.shape[1]/max_number_of_images_per_iteration)
-            indices += number_of_images_processed * number 
+            context_len = int(sae_activations.shape[1]/max_number_of_images_per_iteration)
+            print(f"add value for indices: {context_len}")
+            indices += number_of_images_processed * context_len 
             
-            max_activating_image_values, max_activating_image_indices = get_new_top_k(max_activating_image_values, max_activating_image_indices, values, indices, number_of_max_activating_images)
+            max_activating_image_values, max_activating_image_indices, max_activating_token_ids = get_new_top_k(max_activating_image_values, max_activating_image_indices, max_activating_token_ids, values, indices, selected_tokens, number_of_max_activating_images)
             
             """
             Need to implement calculations for covariance matrix but it will need an additional 16 GB of memory just to store it (32 if I am batching I think...). Could it be added and stored on the CPU? Probs not...
             """
             number_of_images_processed += max_number_of_images_per_iteration
+            
+            if number_of_images_processed % 1000 == 0: 
+                selected_rows = torch.tensor([5901, 26192, 45727, 60220, 47916, 58762, 40649, 35897]).to(sparse_autoencoder.cfg.device)
+                selected_token_ids = max_activating_token_ids[selected_rows, :]
+                test_texts = [model.processor.tokenizer.decode(row, skip_special_tokens=True) for row in selected_token_ids]
+                # test_text = model.processor.tokenizer.decode(max_activating_token_ids[selected_rows, :])
+                print(f"test_texts: {test_texts}")
+            
+            if number_of_images_processed % 1000 == 0:
+                sae_mean_acts_1 = sae_mean_acts/sae_sparsity
+                sae_sparsity_1 = sae_sparsity/number_of_images_processed
+                
+                torch.save(sae_sparsity_1, f'{directory}/sae_sparsity.pt')
+                torch.save(sae_mean_acts_1, f'{directory}/sae_mean_acts.pt')
+                torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
+                torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
+                torch.save(max_activating_token_ids, f'{directory}/max_activating_token_ids.pt')
         
         sae_mean_acts /= sae_sparsity
         sae_sparsity /= number_of_images_processed
@@ -286,15 +315,26 @@ def get_feature_data(
             # Create the directory if it does not exist
             os.makedirs(directory)
             
-        # compute the label tensor
-        max_activating_image_label_indices = torch.tensor([dataset[int(index)]['label'] for index in tqdm(max_activating_image_indices.flatten(), desc = "getting image labels")])
-        # Reshape to original dimensions
-        max_activating_image_label_indices = max_activating_image_label_indices.view(max_activating_image_indices.shape)
-        torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
-        torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
-        torch.save(max_activating_image_label_indices, f'{directory}/max_activating_image_label_indices.pt')
         torch.save(sae_sparsity, f'{directory}/sae_sparsity.pt')
         torch.save(sae_mean_acts, f'{directory}/sae_mean_acts.pt')
-        # Should also save label information tensor here!!!
+        torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
+        torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
+        torch.save(max_activating_token_ids, f'{directory}/max_activating_token_ids.pt')
         
-    save_highest_activating_images(max_activating_image_indices[:10,:10], max_activating_image_values[:10,:10], directory, dataset, image_key)  # 1000
+        
+        
+        
+        
+        
+        # # compute the label tensor
+        # max_activating_image_label_indices = torch.tensor([dataset[int(index)]['label'] for index in tqdm(max_activating_image_indices.flatten(), desc = "getting image labels")])
+        # # Reshape to original dimensions
+        # max_activating_image_label_indices = max_activating_image_label_indices.view(max_activating_image_indices.shape)
+        # torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
+        # torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
+        # torch.save(max_activating_image_label_indices, f'{directory}/max_activating_image_label_indices.pt')
+        # torch.save(sae_sparsity, f'{directory}/sae_sparsity.pt')
+        # torch.save(sae_mean_acts, f'{directory}/sae_mean_acts.pt')
+        # # Should also save label information tensor here!!!
+        
+    # save_highest_activating_images(max_activating_image_indices[:10,:10], max_activating_image_values[:10,:10], directory, dataset, image_key)  # 1000
