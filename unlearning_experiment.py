@@ -194,7 +194,7 @@ def get_model_activations(model, inputs, cfg):
         **inputs,
     )[1][(block_layer, module_name)]
     
-    activations = activations[:,577:,:]
+    activations = activations[:,575:,:]
 
     return activations
 
@@ -208,7 +208,6 @@ def extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forge
     forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
     forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
     forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
-
     forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name]
     forget_summed_sae_activations = forget_sae_activations[0].mean(dim=0, keepdim=True) 
     forget_values_ele, forget_indices_ele = torch.topk(forget_summed_sae_activations, k, dim=1)
@@ -220,7 +219,6 @@ def extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forge
     retain_prompt = model.processor.apply_chat_template(retain_conversation, add_generation_prompt=True)
     retain_inputs = model.processor(images=retain_image, text=retain_prompt, return_tensors='pt').to(0, torch.float16)
     retain_model_activations = get_model_activations(model, retain_inputs, sparse_autoencoder.cfg)
-
     retain_sae_activations = sparse_autoencoder.run_with_cache(retain_model_activations)[1][hook_name]
     retain_summed_sae_activations = retain_sae_activations[0].mean(dim=0, keepdim=True) 
     retain_values_ele, retain_indices_ele = torch.topk(retain_summed_sae_activations, k, dim=1)
@@ -230,8 +228,9 @@ def extratc_forget_retain_sae_feature_info(forget_dataset, retain_dataset, forge
 
 
 ### load sparse autoencoder
-# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
-sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/003628e7ac7aff3a437f92d691bfcf8be7799a9e/757938744_pre_trained_llava_sae_language_model_65536_update.pt"
 sparse_autoencoder, model = load_sae_model(sae_path)
 sparse_autoencoder.eval()
 
@@ -242,7 +241,7 @@ retain_dataset = load_dataset(dataset_path, "retain_90")['train']
 
 ### generate sae features
 hook_name = "hook_hidden_post"
-k = 20
+k = 30
 forget_values = []
 forget_indices = []
 retain_values = []

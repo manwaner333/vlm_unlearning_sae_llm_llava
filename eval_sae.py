@@ -761,7 +761,8 @@ def eval_generation_task(forget_dataset, model, output_folder, output_file):
 
 ### load sparse autoencoder
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
-sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
 sparse_autoencoder, model = load_sae_model(sae_path)
 sparse_autoencoder.eval()
 
@@ -776,16 +777,16 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 # output_file = 'llava_1.5_7b_vanilla_sae_unlearning'
 
 # 使用了sae 后 forget_10
-output_folder = 'result/llava_1.5_7b_sae_forget_10_1'
-output_file = 'llava_1.5_7b_sae_forget_10_1'
+output_folder = 'result/llava_1.5_7b_sae_forget_10_2'
+output_file = 'llava_1.5_7b_sae_forget_10_2'
 
 # 使用了sae后 retain set
-# output_folder = 'result/llava_1.5_7b_sae_retain_90'
-# output_file = 'llava_1.5_7b_sae_retain_90'
+# output_folder = 'result/llava_1.5_7b_sae_retain_90_2'
+# output_file = 'llava_1.5_7b_sae_retain_90_2'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
-eval_fill_blank_task(forget_dataset_10, model, output_folder, output_file)         # forget_dataset_10
-# eval_classification_task(retain_dataset_90, model, output_folder, output_file)
-# eval_generation_task(retain_dataset_90, model, output_folder, output_file)
+# eval_fill_blank_task(retain_dataset_90, model, output_folder, output_file)         # forget_dataset_10
+eval_classification_task(forget_dataset_10, model, output_folder, output_file)
+# eval_generation_task(forget_dataset_10, model, output_folder, output_file)

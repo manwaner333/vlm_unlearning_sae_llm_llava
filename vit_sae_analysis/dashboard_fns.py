@@ -265,47 +265,59 @@ def get_feature_data(
                 final_text = model.processor.tokenizer.decode(final_tokens)
                 batch_of_images.append(image)
                 batch_of_conversations.append(conversation_form(final_text))
-            
-            model_activations, batch_of_prompts = get_all_model_activations(model, batch_of_images, batch_of_conversations, sparse_autoencoder.cfg, output_file) # tensor of size [batch, d_resid]
-            sae_activations = get_sae_activations(model_activations, sparse_autoencoder).transpose(0,1) # tensor of size [feature_idx, batch]
-            del model_activations
-            sae_mean_acts += sae_activations.sum(dim = 1)
-            sae_sparsity += (sae_activations>0).sum(dim = 1)
-            all_tokens = model.processor.tokenizer(batch_of_prompts).input_ids
-            all_tokens_np = np.array(all_tokens)     
-            flat_all_tokens = torch.from_numpy(all_tokens_np.ravel()).long().unsqueeze(0).repeat(65536, 1).to(sparse_autoencoder.cfg.device)
-            
-            # Convert the images list to a torch tensor
-            values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1)   # 1  # sizes [sae_idx, images] is the size of this matrix correct?
-            selected_tokens = torch.gather(flat_all_tokens, dim=1, index=indices)
-            # indices += number_of_images_processed
-            context_len = int(sae_activations.shape[1]/max_number_of_images_per_iteration)
-            print(f"add value for indices: {context_len}")
-            indices += number_of_images_processed * context_len 
-            
-            max_activating_image_values, max_activating_image_indices, max_activating_token_ids = get_new_top_k(max_activating_image_values, max_activating_image_indices, max_activating_token_ids, values, indices, selected_tokens, number_of_max_activating_images)
-            
-            """
-            Need to implement calculations for covariance matrix but it will need an additional 16 GB of memory just to store it (32 if I am batching I think...). Could it be added and stored on the CPU? Probs not...
-            """
-            number_of_images_processed += max_number_of_images_per_iteration
-            
-            if number_of_images_processed % 1000 == 0: 
-                selected_rows = torch.tensor([5901, 26192, 45727, 60220, 47916, 58762, 40649, 35897]).to(sparse_autoencoder.cfg.device)
-                selected_token_ids = max_activating_token_ids[selected_rows, :]
-                test_texts = [model.processor.tokenizer.decode(row, skip_special_tokens=True) for row in selected_token_ids]
-                # test_text = model.processor.tokenizer.decode(max_activating_token_ids[selected_rows, :])
-                print(f"test_texts: {test_texts}")
-            
-            if number_of_images_processed % 1000 == 0:
-                sae_mean_acts_1 = sae_mean_acts/sae_sparsity
-                sae_sparsity_1 = sae_sparsity/number_of_images_processed
+            try:
+                model_activations, batch_of_prompts = get_all_model_activations(model, batch_of_images, batch_of_conversations, sparse_autoencoder.cfg, output_file) # tensor of size [batch, d_resid]
+                sae_activations = get_sae_activations(model_activations, sparse_autoencoder).transpose(0,1) # tensor of size [feature_idx, batch]
+                del model_activations
+                sae_mean_acts += sae_activations.sum(dim = 1)
+                sae_sparsity += (sae_activations>0).sum(dim = 1)
+                all_tokens = model.processor.tokenizer(batch_of_prompts).input_ids
+                all_tokens_np = np.array(all_tokens)     
+                flat_all_tokens = torch.from_numpy(all_tokens_np.ravel()).long().unsqueeze(0).repeat(65536, 1).to(sparse_autoencoder.cfg.device)
                 
-                torch.save(sae_sparsity_1, f'{directory}/sae_sparsity.pt')
-                torch.save(sae_mean_acts_1, f'{directory}/sae_mean_acts.pt')
-                torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
-                torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
-                torch.save(max_activating_token_ids, f'{directory}/max_activating_token_ids.pt')
+                # Convert the images list to a torch tensor
+                values, indices = topk(sae_activations, k = number_of_max_activating_images, dim = 1)   # 1  # sizes [sae_idx, images] is the size of this matrix correct?
+                selected_tokens = torch.gather(flat_all_tokens, dim=1, index=indices)
+                # indices += number_of_images_processed
+                context_len = int(sae_activations.shape[1]/max_number_of_images_per_iteration)
+                print(f"add value for indices: {context_len}")
+                indices += number_of_images_processed * context_len 
+                
+                max_activating_image_values, max_activating_image_indices, max_activating_token_ids = get_new_top_k(max_activating_image_values, max_activating_image_indices, max_activating_token_ids, values, indices, selected_tokens, number_of_max_activating_images)
+                
+                """
+                Need to implement calculations for covariance matrix but it will need an additional 16 GB of memory just to store it (32 if I am batching I think...). Could it be added and stored on the CPU? Probs not...
+                """
+                number_of_images_processed += max_number_of_images_per_iteration
+                
+                if number_of_images_processed % 1000 == 0: 
+                    selected_rows = torch.tensor([5901, 26192, 45727, 60220, 47916, 58762, 40649, 35897, 3935, 20726, 9781, 42843, 29790, 53039, 9451, 8076]).to(sparse_autoencoder.cfg.device)
+                    # selected_rows = torch.tensor([5901, 26192, 45727, 60220, 47916, 58762, 40649, 35897]).to(sparse_autoencoder.cfg.device)
+                    selected_token_ids = max_activating_token_ids[selected_rows, :]
+                    test_texts = [model.processor.tokenizer.decode(row, skip_special_tokens=True) for row in selected_token_ids]
+                    # test_text = model.processor.tokenizer.decode(max_activating_token_ids[selected_rows, :])
+                    print(f"test_texts: {test_texts}")
+                
+                if number_of_images_processed % 1000 == 0:
+                    sae_mean_acts_1 = sae_mean_acts/sae_sparsity
+                    sae_sparsity_1 = sae_sparsity/number_of_images_processed
+                    
+                    torch.save(sae_sparsity_1, f'{directory}/sae_sparsity.pt')
+                    torch.save(sae_mean_acts_1, f'{directory}/sae_mean_acts.pt')
+                    torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
+                    torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
+                    torch.save(max_activating_token_ids, f'{directory}/max_activating_token_ids.pt')
+            
+            except torch.cuda.OutOfMemoryError:
+                print(f"[OOM Warning] Batch {i} caused CUDA OOM. Skipping this batch.")
+                # torch.cuda.empty_cache()
+                number_of_images_processed += max_number_of_images_per_iteration
+                continue
+            except RuntimeError as e:
+                print(f"[Error] RuntimeError at batch {i}: {str(e)}")
+                number_of_images_processed += max_number_of_images_per_iteration
+                # raise e
+                continue
         
         sae_mean_acts /= sae_sparsity
         sae_sparsity /= number_of_images_processed
@@ -320,10 +332,6 @@ def get_feature_data(
         torch.save(max_activating_image_indices, f'{directory}/max_activating_image_indices.pt')
         torch.save(max_activating_image_values, f'{directory}/max_activating_image_values.pt')
         torch.save(max_activating_token_ids, f'{directory}/max_activating_token_ids.pt')
-        
-        
-        
-        
         
         
         # # compute the label tensor
