@@ -112,6 +112,13 @@ class SparseAutoencoder(HookedRootModule):
         # for index in topk_indices:
         #     feature_acts[0, index] = feature_acts[0, index] * (-1.5)
         
+        # 更新的处理
+        # selected_sae_features = [35021, 1887]   #[35021, 18653]   # , 18653, 22433, 50118, 58286 , 22433, 50118, 58286
+        # target_slice = feature_acts[:, 575:, selected_sae_features]
+        # mask = target_slice > 3.0
+        # target_slice[mask] *= -5.5   # -10.0
+        # feature_acts[:, :, selected_sae_features] = target_slice
+        
         sae_out = self.hook_sae_out(
             einops.einsum(
                 feature_acts,
