@@ -202,7 +202,8 @@ def generate_image_text(model, conversation, image, max_token):
 ### load sparse_autoencoder and model
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
-sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
+sae_path = "/home/coder/geng/vlm_unlearning_sae_llm_llava/checkpoints/wrif7maq_1/724984992_sparse_autoencoder_LLaVA_Vanilla_16_resid_65536.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/003628e7ac7aff3a437f92d691bfcf8be7799a9e/757938744_pre_trained_llava_sae_language_model_65536_update.pt"
 loaded_object = torch.load(sae_path)
 cfg = loaded_object['cfg']
@@ -231,81 +232,81 @@ Action: We extract plain-text questions from the Mask_Task and Classification_Ta
 For each token in the names, we retrieve the top-k associated SAE features and their corresponding values. In this experiment, the input contains "image"
 """
 
-hook_name = "hook_hidden_post"
-k = 5
-with open("dataset/token_infor_retain.json", "w", encoding="utf-8") as f:  
-    for forget_index in range(len(forget_dataset)):
-        forget_image = forget_dataset[forget_index]['image']
-        forget_biography = forget_dataset[forget_index]['biography']
-        name = json.loads(forget_biography)["Name"]
-        name_input_ids = model.processor.tokenizer(name, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
-        name_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in name_input_ids]
-        print(name_tokens)
+# hook_name = "hook_hidden_post"
+# k = 5
+# with open("dataset/token_infor_retain.json", "w", encoding="utf-8") as f:  
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+#         name = json.loads(forget_biography)["Name"]
+#         name_input_ids = model.processor.tokenizer(name, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         name_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in name_input_ids]
+#         print(name_tokens)
         
-        Classification_Task = forget_dataset[forget_index]['Classification_Task']
-        Generation_Task = forget_dataset[forget_index]['Generation_Task']
-        Mask_Task = forget_dataset[forget_index]['Mask_Task']
+#         Classification_Task = forget_dataset[forget_index]['Classification_Task']
+#         Generation_Task = forget_dataset[forget_index]['Generation_Task']
+#         Mask_Task = forget_dataset[forget_index]['Mask_Task']
         
-        for ele in Mask_Task:
-            question = ele["Question"]
-            ground_truth = ele["Ground_Truth"]
-            question_type = ele["Type"]
+#         for ele in Mask_Task:
+#             question = ele["Question"]
+#             ground_truth = ele["Ground_Truth"]
+#             question_type = ele["Type"]
 
-            if question_type == "Pure_Text":
-                forget_conversation = conversation_form(question)
-                forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
-                forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
-                forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+#             if question_type == "Pure_Text":
+#                 forget_conversation = conversation_form(question)
+#                 forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#                 forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#                 forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
 
-                input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#                 input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
 
-                tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+#                 tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
 
-                forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
-                values, indices = torch.topk(forget_sae_activations, k, dim=1)
+#                 forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#                 values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
-                res = {}
-                for i in range(len(tokens)):
-                    token = tokens[i]
-                    if token in name_tokens and token != '<s>':
-                        print(name)
-                        print(f"token: {token}")
-                        indice = indices[i]
-                        value = values[i]
-                        res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
+#                 res = {}
+#                 for i in range(len(tokens)):
+#                     token = tokens[i]
+#                     if token in name_tokens and token != '<s>':
+#                         print(name)
+#                         print(f"token: {token}")
+#                         indice = indices[i]
+#                         value = values[i]
+#                         res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
                 
-                json.dump(res, f, ensure_ascii=False)
-                f.write("\n")
+#                 json.dump(res, f, ensure_ascii=False)
+#                 f.write("\n")
         
-        for ele in Classification_Task['Pure_Text_Questions']:
-            correct_answer = ele['Correct_Answer']
-            options = ele['Options']
-            question = ele['Question']
+#         for ele in Classification_Task['Pure_Text_Questions']:
+#             correct_answer = ele['Correct_Answer']
+#             options = ele['Options']
+#             question = ele['Question']
             
-            forget_conversation = conversation_form(question)
-            forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
-            forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
-            forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+#             forget_conversation = conversation_form(question)
+#             forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#             forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#             forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
 
-            input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#             input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
 
-            tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in input_ids]
+#             tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in input_ids]
 
-            forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
-            values, indices = torch.topk(forget_sae_activations, k, dim=1)
+#             forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#             values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
-            res = {}
-            for i in range(len(tokens)):
-                token = tokens[i]
-                if token in name_tokens and token != '<s>':  # [-1]
-                    print(name)
-                    print(f"token: {token}")
-                    indice = indices[i]
-                    value = values[i]
-                    res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
+#             res = {}
+#             for i in range(len(tokens)):
+#                 token = tokens[i]
+#                 if token in name_tokens and token != '<s>':  # [-1]
+#                     print(name)
+#                     print(f"token: {token}")
+#                     indice = indices[i]
+#                     value = values[i]
+#                     res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
             
-            json.dump(res, f, ensure_ascii=False)
-            f.write("\n")
+#             json.dump(res, f, ensure_ascii=False)
+#             f.write("\n")
            
 
 """
@@ -316,81 +317,81 @@ For each token in the names, we retrieve the top-k associated SAE features and t
 """
 
 
-with open("dataset/token_infor_retain.json", "w", encoding="utf-8") as f: 
-    for forget_index in range(len(forget_dataset)):
-        forget_image = forget_dataset[forget_index]['image']
-        forget_biography = forget_dataset[forget_index]['biography']
-        name = json.loads(forget_biography)["Name"]
-        # name = name.replace("<s>", "").strip()
-        name_input_ids = model.processor.tokenizer(name, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
-        name_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in name_input_ids]
-        print(name_tokens)
-        # print(forget_biography)
+# with open("dataset/token_infor_retain.json", "w", encoding="utf-8") as f: 
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+#         name = json.loads(forget_biography)["Name"]
+#         # name = name.replace("<s>", "").strip()
+#         name_input_ids = model.processor.tokenizer(name, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         name_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in name_input_ids]
+#         print(name_tokens)
+#         # print(forget_biography)
         
-        Classification_Task = forget_dataset[forget_index]['Classification_Task']
-        Generation_Task = forget_dataset[forget_index]['Generation_Task']
-        Mask_Task = forget_dataset[forget_index]['Mask_Task']
+#         Classification_Task = forget_dataset[forget_index]['Classification_Task']
+#         Generation_Task = forget_dataset[forget_index]['Generation_Task']
+#         Mask_Task = forget_dataset[forget_index]['Mask_Task']
         
-        for ele in Mask_Task:
-            question = ele["Question"]
-            ground_truth = ele["Ground_Truth"]
-            question_type = ele["Type"]
+#         for ele in Mask_Task:
+#             question = ele["Question"]
+#             ground_truth = ele["Ground_Truth"]
+#             question_type = ele["Type"]
 
-            if question_type == "Pure_Text":
-                forget_conversation = conversation_only_text_form(question)
-                forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
-                forget_inputs = model.processor(text=forget_prompt, return_tensors='pt').to(0, torch.float16)
-                forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+#             if question_type == "Pure_Text":
+#                 forget_conversation = conversation_only_text_form(question)
+#                 forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#                 forget_inputs = model.processor(text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#                 forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
 
-                input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#                 input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
 
-                tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  # '<s>'
+#                 tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  # '<s>'
 
-                forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
-                values, indices = torch.topk(forget_sae_activations, k, dim=1)
+#                 forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#                 values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
-                res = {}
-                for i in range(len(tokens)):
-                    token = tokens[i]
-                    if token in name_tokens and token != '<s>':
-                        print(name)
-                        print(f"token: {token}")
-                        indice = indices[i]
-                        value = values[i]
-                        res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
+#                 res = {}
+#                 for i in range(len(tokens)):
+#                     token = tokens[i]
+#                     if token in name_tokens and token != '<s>':
+#                         print(name)
+#                         print(f"token: {token}")
+#                         indice = indices[i]
+#                         value = values[i]
+#                         res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
                 
-                json.dump(res, f, ensure_ascii=False)
-                f.write("\n")
+#                 json.dump(res, f, ensure_ascii=False)
+#                 f.write("\n")
         
-        for ele in Classification_Task['Pure_Text_Questions']:
-            correct_answer = ele['Correct_Answer']
-            options = ele['Options']
-            question = ele['Question']
+#         for ele in Classification_Task['Pure_Text_Questions']:
+#             correct_answer = ele['Correct_Answer']
+#             options = ele['Options']
+#             question = ele['Question']
             
-            forget_conversation = conversation_only_text_form(question)
-            forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
-            forget_inputs = model.processor(text=forget_prompt, return_tensors='pt').to(0, torch.float16)
-            forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+#             forget_conversation = conversation_only_text_form(question)
+#             forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#             forget_inputs = model.processor(text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#             forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
 
-            input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#             input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
 
-            tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in input_ids]
+#             tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in input_ids]
 
-            forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
-            values, indices = torch.topk(forget_sae_activations, k, dim=1)
+#             forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#             values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
-            res = {}
-            for i in range(len(tokens)):
-                token = tokens[i]
-                if token in name_tokens and token != '<s>':  # [-1]
-                    print(name)
-                    print(f"token: {token}")
-                    indice = indices[i]
-                    value = values[i]
-                    res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
+#             res = {}
+#             for i in range(len(tokens)):
+#                 token = tokens[i]
+#                 if token in name_tokens and token != '<s>':  # [-1]
+#                     print(name)
+#                     print(f"token: {token}")
+#                     indice = indices[i]
+#                     value = values[i]
+#                     res[token] = {"name": name, "question:": question, "indice": indice.tolist(), "value": value.tolist()}
             
-            json.dump(res, f, ensure_ascii=False)
-            f.write("\n")
+#             json.dump(res, f, ensure_ascii=False)
+#             f.write("\n")
 
 """
 Name: Experiment 3
@@ -398,50 +399,50 @@ Goal: Explore the relationship: Do tokens with the same name exhibit different S
 Action: Based on the above experimental results, We analyze the SAE features that are present in the forget dataset but not in the retain dataset.
 """
 
-retain_features = {}
-with open("dataset/token_infor_retain.json", "r", encoding="utf-8") as f:
-    for line in f:
-        if line.strip():  # 跳过空行
-            item = json.loads(line)
-            for key in item:
-                if "indice" in item[key]:
-                    indices = item[key]["indice"][0:3]
-                    for ele in indices:
-                        if ele not in retain_features:
-                            retain_features[ele] = 1
-                        else:
-                            retain_features[ele] += 1
-sorted_retain_features = dict(sorted(retain_features.items(), key=lambda x: x[1], reverse=True))                   
-print(sorted_retain_features)
-qingli = 3
+# retain_features = {}
+# with open("dataset/token_infor_retain.json", "r", encoding="utf-8") as f:
+#     for line in f:
+#         if line.strip():  # 跳过空行
+#             item = json.loads(line)
+#             for key in item:
+#                 if "indice" in item[key]:
+#                     indices = item[key]["indice"][0:3]
+#                     for ele in indices:
+#                         if ele not in retain_features:
+#                             retain_features[ele] = 1
+#                         else:
+#                             retain_features[ele] += 1
+# sorted_retain_features = dict(sorted(retain_features.items(), key=lambda x: x[1], reverse=True))                   
+# print(sorted_retain_features)
+# qingli = 3
 
 
-forget_features = {}
-with open("dataset/token_infor.json", "r", encoding="utf-8") as f:
-    for line in f:
-        if line.strip():  # 跳过空行
-            item = json.loads(line)
-            for key in item:
-                if "indice" in item[key]:
-                    indices = item[key]["indice"][0:3]
-                    for ele in indices:
-                        if ele not in forget_features:
-                            forget_features[ele] = 1
-                        else:
-                            forget_features[ele] += 1
-sorted_forget_features = dict(sorted(forget_features.items(), key=lambda x: x[1], reverse=True))                   
-print(sorted_forget_features)
-qingli = 3
+# forget_features = {}
+# with open("dataset/token_infor.json", "r", encoding="utf-8") as f:
+#     for line in f:
+#         if line.strip():  # 跳过空行
+#             item = json.loads(line)
+#             for key in item:
+#                 if "indice" in item[key]:
+#                     indices = item[key]["indice"][0:3]
+#                     for ele in indices:
+#                         if ele not in forget_features:
+#                             forget_features[ele] = 1
+#                         else:
+#                             forget_features[ele] += 1
+# sorted_forget_features = dict(sorted(forget_features.items(), key=lambda x: x[1], reverse=True))                   
+# print(sorted_forget_features)
+# qingli = 3
 
-token = []
-features = {}
-for forget_ele in sorted_forget_features:
-    if forget_ele not in sorted_retain_features:
-        token.append(forget_ele)
-        features[forget_ele] = sorted_forget_features[forget_ele]
+# token = []
+# features = {}
+# for forget_ele in sorted_forget_features:
+#     if forget_ele not in sorted_retain_features:
+#         token.append(forget_ele)
+#         features[forget_ele] = sorted_forget_features[forget_ele]
 
-print(features)
-print(token)
+# print(features)
+# print(token)
 
 
 
@@ -453,51 +454,51 @@ For each token in the names, we retrieve the top-k associated SAE features and t
 """
 
 
-vanilla_info = []
-sae_info = []
-with open("result/llava_1.5_7b_vanilla_model_forget_10/llava_1.5_7b_vanilla_model_forget_10_fill_blank_results_official.json", "r", encoding="utf-8") as f:
-    for line in f:
-        if line.strip(): 
-            item = json.loads(line)
-            vanilla_info.append(item)
+# vanilla_info = []
+# sae_info = []
+# with open("result/llava_1.5_7b_vanilla_model_forget_10/llava_1.5_7b_vanilla_model_forget_10_fill_blank_results_official.json", "r", encoding="utf-8") as f:
+#     for line in f:
+#         if line.strip(): 
+#             item = json.loads(line)
+#             vanilla_info.append(item)
 
-with open("result/llava_1.5_7b_sae_forget_10_3/llava_1.5_7b_sae_forget_10_3_fill_blank_results_official.json", "r", encoding="utf-8") as f:
-    for line in f:
-        if line.strip():  # 跳过空行
-            item = json.loads(line)
-            sae_info.append(item)
+# with open("result/llava_1.5_7b_sae_forget_10_3/llava_1.5_7b_sae_forget_10_3_fill_blank_results_official.json", "r", encoding="utf-8") as f:
+#     for line in f:
+#         if line.strip():  # 跳过空行
+#             item = json.loads(line)
+#             sae_info.append(item)
 
-count = 0
-for index in range(len(vanilla_info)):
-    sae_ele = sae_info[index]
-    sae_question_type = sae_ele["question_type"]
-    sae_question = sae_ele["question"]
-    sae_model_answer = sae_ele["model_answer"]
-    sae_ground_truth = sae_ele["ground_truth"]
+# count = 0
+# for index in range(len(vanilla_info)):
+#     sae_ele = sae_info[index]
+#     sae_question_type = sae_ele["question_type"]
+#     sae_question = sae_ele["question"]
+#     sae_model_answer = sae_ele["model_answer"]
+#     sae_ground_truth = sae_ele["ground_truth"]
     
-    if sae_question_type == "Image_Textual":
-        if sae_ground_truth.lower() in sae_model_answer.lower():
-            continue
-        else:
-            vanilla_ele = vanilla_info[index]
-            question_type = vanilla_ele["question_type"]
-            question = vanilla_ele["question"]
-            model_answer = vanilla_ele["model_answer"]
-            ground_truth = vanilla_ele["ground_truth"]
-            if ground_truth.lower() in model_answer.lower():
-                count += 1
-                print("SAE:")
-                print(f"Question: {sae_question}")
-                print(f"Model Answer: {sae_model_answer}")
-                print(f"Ground Truth: {sae_ground_truth}")
-                print(f"Answer: {sae_ground_truth.lower() in sae_model_answer.lower()}")
-                print("Vanilla:") 
-                print(f"Question: {question}")
-                print(f"Model Answer: {model_answer}")
-                print(f"Ground Truth: {ground_truth}")
-                print(f"Answer: {ground_truth.lower() in model_answer.lower()}")
-                print("\n")
-print(f"count: {count}")
+#     if sae_question_type == "Image_Textual":
+#         if sae_ground_truth.lower() in sae_model_answer.lower():
+#             continue
+#         else:
+#             vanilla_ele = vanilla_info[index]
+#             question_type = vanilla_ele["question_type"]
+#             question = vanilla_ele["question"]
+#             model_answer = vanilla_ele["model_answer"]
+#             ground_truth = vanilla_ele["ground_truth"]
+#             if ground_truth.lower() in model_answer.lower():
+#                 count += 1
+#                 print("SAE:")
+#                 print(f"Question: {sae_question}")
+#                 print(f"Model Answer: {sae_model_answer}")
+#                 print(f"Ground Truth: {sae_ground_truth}")
+#                 print(f"Answer: {sae_ground_truth.lower() in sae_model_answer.lower()}")
+#                 print("Vanilla:") 
+#                 print(f"Question: {question}")
+#                 print(f"Model Answer: {model_answer}")
+#                 print(f"Ground Truth: {ground_truth}")
+#                 print(f"Answer: {ground_truth.lower() in model_answer.lower()}")
+#                 print("\n")
+# print(f"count: {count}")
 
 
 """
@@ -508,52 +509,320 @@ We extracted the top-k SAE features and values for each token of the word *"sala
 Tokens that appear frequently and have high associated values are assumed to be more closely related to *"salary"*.
 """
 
-token_number = {}
-token_value = {}
-with open("dataset/salary_token_infor_forget.json", "w", encoding="utf-8") as f:
+# token_number = {}
+# token_value = {}
+# with open("dataset/salary_token_infor_forget.json", "w", encoding="utf-8") as f:
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+#         name = json.loads(forget_biography)["Name"]
+
+#         salary = "salary"
+#         salary_input_ids = model.processor.tokenizer(salary, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         salary_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in salary_input_ids]
+
+#         question = f"What is {name}'s annual salary?"
+
+#         forget_conversation = conversation_form(question)
+#         forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#         forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#         forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#         input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  
+
+#         forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#         values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+#         res = {}
+#         for i in range(len(tokens)):
+#             token = tokens[i]
+#             if token == salary_tokens[-1]:
+#                 print(f"token: {token}")
+#                 indice = indices[i].tolist()
+#                 value = values[i].tolist()
+#                 res[token] = {"name": name, "question:": question, "indice": indice, "value": value}
+#                 for ele_i in range(len(indice)):
+#                     ele_indice =  indice[ele_i]
+#                     ele_value = value[ele_i]
+#                     if ele_indice not in token_number:
+#                         token_number[ele_indice] = 1
+#                         token_value[ele_indice] = [ele_value]
+#                     else:
+#                         token_number[ele_indice] += 1
+#                         token_value[ele_indice].append(ele_value)
+            
+#         json.dump(res, f, ensure_ascii=False)
+#         f.write("\n")
+
+# res_features = dict(sorted(token_number.items(), key=lambda x: x[1], reverse=True))                   
+# print(res_features)
+# print(token_value)
+
+def calculate_coverage(question_features, sae_features1, sae_features2):
+    sae_features1_flag = [0] * len(sae_features1)
+    sae_features2_flag = [0] * len(sae_features2)
+    for pair in question_features:
+        found = False
+        for i in range(len(sae_features1)):
+            if sae_features1_flag[i] == 0 and (pair[0] in sae_features1[i] or pair[1] in sae_features1[i]):
+                sae_features1_flag[i] = 1
+                found = True
+                break  
+        if not found:
+            for j in range(len(sae_features2)):
+                if sae_features2_flag[j] == 0 and (pair[0] in sae_features2[j] or pair[1] in sae_features2[j]):
+                    sae_features2_flag[j] = 1
+                    break 
+    
+    return sae_features1_flag, sae_features2_flag
+
+
+# hook_name = "hook_hidden_post"
+# k=2
+# with open("dataset/salary_import_tokens_infor_forget.json", "w", encoding="utf-8") as f:
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+        
+#         name = json.loads(forget_biography)["Name"]
+#         name_input_ids = model.processor.tokenizer(name, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         name_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in name_input_ids]
+
+#         salary = "salary"
+#         salary_input_ids = model.processor.tokenizer(salary, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         salary_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in salary_input_ids]
+
+#         question = f"What is {name}'s annual salary?"
+
+#         forget_conversation = conversation_form(question)
+#         forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#         forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#         forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#         input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  
+
+#         forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#         values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+#         res = {"name": name, "question:": question, "salary_tokens":[], "salary_sae_features":[], "salarly_sae_values":[], "name_tokens":[], "name_sae_features":[], "name_sae_values":[]}
+
+#         for i in range(len(tokens)):
+#             token = tokens[i]
+#             if token in salary_tokens and token != "<s>":
+#                 print(f"token: {token}")
+#                 indice = indices[i].tolist()
+#                 value = values[i].tolist()
+#                 res["salary_tokens"].append(token)
+#                 res["salary_sae_features"].append(indice)
+#                 res["salarly_sae_values"].append(value)
+
+#             if token in name_tokens and token != "<s>":
+#                 print(f"token: {token}")
+#                 indice = indices[i].tolist()
+#                 value = values[i].tolist()
+#                 res["name_tokens"].append(token)
+#                 res["name_sae_features"].append(indice)
+#                 res["name_sae_values"].append(value)
+
+#         json.dump(res, f, ensure_ascii=False)
+#         f.write("\n")
+
+
+
+salary_knowledge = {}
+hook_name = "hook_hidden_post"
+k=2
+key = 0
+with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_tokens_infor_forget.json", "r", encoding="utf-8") as f:
+    for line in f:
+        if line.strip():
+            item = json.loads(line)
+            name_sae_features = item["name_sae_features"]
+            salary_sae_features = item["salary_sae_features"]
+            salary_knowledge[key] = {"name_sae_features": name_sae_features, "salary_sae_features": salary_sae_features}
+            key += 1
+
+#  测试自己虚构的一些场景
+
+# total_adj_number = 0
+# with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_tokens_infor_retain_adj_test.json", "w", encoding="utf-8") as f:
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+        
+#         name = json.loads(forget_biography)["Name"]
+
+#         question = f"What is {name}'s annual salary?"
+        
+#         forget_conversation = conversation_form(question)
+#         forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#         forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#         forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#         input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  
+
+#         forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#         values, indices = torch.topk(forget_sae_activations, k, dim=1)
+#         indices_list = indices.cpu().tolist()
+#         flag = 0
+#         res = {"name": name, "question:": question}
+#         for i in range(len(salary_knowledge)):
+#             sae_features1 = salary_knowledge[i]["name_sae_features"]
+#             sae_features2 = salary_knowledge[i]["salary_sae_features"]
+#             sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+#             print(f"sae_features1_flag: {sae_features1_flag}")
+#             print(f"sae_features2_flag: {sae_features2_flag}")
+
+#             ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+#             ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+#             if ratio1 > 0.9 and ratio2 > 0.9:
+#                 flag = 1   # 需要在此处进行修改
+#                 if flag == 1:
+#                     res["flag"] = flag
+#                     res['flag_index'] = i
+#                     res['sae_features1_flag'] = sae_features1_flag
+#                     res['sae_features2_flag'] = sae_features2_flag
+#                     total_adj_number += 1
+#                     break
+#             else:
+#                 res["flag"] = flag
+#                 res['flag_index'] = -0
+#                 res['sae_features1_flag'] = sae_features1_flag
+#                 res['sae_features2_flag'] = sae_features2_flag
+#         json.dump(res, f, ensure_ascii=False)
+#         f.write("\n")
+
+# print(f"total_adj_number: {total_adj_number}")      
+
+
+
+# 测试真实的场景
+total_adj_number = 0
+total_number = 0
+with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_tokens_infor_retain_adj_test.json", "w", encoding="utf-8") as f:
     for forget_index in range(len(forget_dataset)):
         forget_image = forget_dataset[forget_index]['image']
         forget_biography = forget_dataset[forget_index]['biography']
+        
         name = json.loads(forget_biography)["Name"]
 
-        salary = "salary"
-        salary_input_ids = model.processor.tokenizer(salary, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
-        salary_tokens = [model.processor.tokenizer.decode(token_id, skip_special_tokens=False) for token_id in salary_input_ids]
+        Classification_Task = forget_dataset[forget_index]['Classification_Task']
+        Generation_Task = forget_dataset[forget_index]['Generation_Task']
+        Mask_Task = forget_dataset[forget_index]['Mask_Task']
 
-        question = f"What is {name}'s annual salary?"
+        for ele in Mask_Task:
+            question = ele["Question"]
+            ground_truth = ele["Ground_Truth"]
+            question_type = ele["Type"]
 
-        forget_conversation = conversation_form(question)
-        forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
-        forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
-        forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+            if question_type == "Pure_Text" and "salary" in question.lower():
+                total_number += 1
+                flag = 0
+                forget_conversation = conversation_form(question)
+                forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+                forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+                forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
 
-        input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
-        tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  
+                input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+                tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+                forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+                values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
-        forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
-        values, indices = torch.topk(forget_sae_activations, k, dim=1)
+                indices_list = indices.cpu().tolist()
+                res = {"name": name, "question:": question}
+                for i in range(len(salary_knowledge)):
+                    sae_features1 = salary_knowledge[i]["name_sae_features"]
+                    sae_features2 = salary_knowledge[i]["salary_sae_features"]
+                    sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+                    print(f"sae_features1_flag: {sae_features1_flag}")
+                    print(f"sae_features2_flag: {sae_features2_flag}")
 
-        res = {}
-        for i in range(len(tokens)):
-            token = tokens[i]
-            if token == salary_tokens[-1]:
-                print(f"token: {token}")
-                indice = indices[i].tolist()
-                value = values[i].tolist()
-                res[token] = {"name": name, "question:": question, "indice": indice, "value": value}
-                for ele_i in range(len(indice)):
-                    ele_indice =  indice[ele_i]
-                    ele_value = value[ele_i]
-                    if ele_indice not in token_number:
-                        token_number[ele_indice] = 1
-                        token_value[ele_indice] = [ele_value]
+                    ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+                    ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+                    if ratio1 > 0.9 and ratio2 > 0.9:
+                        flag = 1   # 需要在此处进行修改
+                        if flag == 1:
+                            res["flag"] = flag
+                            res['flag_index'] = i
+                            res['sae_features1_flag'] = sae_features1_flag
+                            res['sae_features2_flag'] = sae_features2_flag
+                            total_adj_number += 1
+                            break
                     else:
-                        token_number[ele_indice] += 1
-                        token_value[ele_indice].append(ele_value)
-            
-        json.dump(res, f, ensure_ascii=False)
-        f.write("\n")
+                        res["flag"] = flag
+                        res['flag_index'] = -0
+                        res['sae_features1_flag'] = sae_features1_flag
+                        res['sae_features2_flag'] = sae_features2_flag
+                json.dump(res, f, ensure_ascii=False)
+                f.write("\n")
 
-res_features = dict(sorted(token_number.items(), key=lambda x: x[1], reverse=True))                   
-print(res_features)
-print(token_value)
+        for ele in Classification_Task['Pure_Text_Questions']:
+            correct_answer = ele['Correct_Answer']
+            options = ele['Options']
+            question = ele['Question']
+
+            if "salary" in question.lower():
+                total_number += 1
+                flag = 0
+                forget_conversation = conversation_form(question)
+                forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+                forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+                forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+                input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+                tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+                forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+                values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+                indices_list = indices.cpu().tolist()
+                res = {"name": name, "question:": question}
+                for i in range(len(salary_knowledge)):
+                    sae_features1 = salary_knowledge[i]["name_sae_features"]
+                    sae_features2 = salary_knowledge[i]["salary_sae_features"]
+                    sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+                    print(f"sae_features1_flag: {sae_features1_flag}")
+                    print(f"sae_features2_flag: {sae_features2_flag}")
+
+                    ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+                    ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+                    if ratio1 > 0.9 and ratio2 > 0.9:
+                        flag = 1   # 需要在此处进行修改
+                        if flag == 1:
+                            res["flag"] = flag
+                            res['flag_index'] = i
+                            res['sae_features1_flag'] = sae_features1_flag
+                            res['sae_features2_flag'] = sae_features2_flag
+                            total_adj_number += 1
+                            break
+                    else:
+                        res["flag"] = flag
+                        res['flag_index'] = -0
+                        res['sae_features1_flag'] = sae_features1_flag
+                        res['sae_features2_flag'] = sae_features2_flag
+                json.dump(res, f, ensure_ascii=False)
+                f.write("\n")
+
+print(f"total_number: {total_number}")
+print(f"total_adjust_number: {total_adj_number}")
+
+
+#         question = f"What is {name}'s annual salary?"
+        
+#         forget_conversation = conversation_form(question)
+#         forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#         forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#         forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#         input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#         tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]  
+
+#         forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#         values, indices = torch.topk(forget_sae_activations, k, dim=1)
+        
+
+# print(f"total_adj_number: {total_adj_number}")  
+
+

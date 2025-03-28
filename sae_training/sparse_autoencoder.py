@@ -113,10 +113,10 @@ class SparseAutoencoder(HookedRootModule):
         #     feature_acts[0, index] = feature_acts[0, index] * (-1.5)
         
         # 更新的处理
-        # selected_sae_features = [35021, 1887]   #[35021, 18653]   # , 18653, 22433, 50118, 58286 , 22433, 50118, 58286
-        # target_slice = feature_acts[:, 575:, selected_sae_features]
-        # mask = target_slice > 3.0
-        # target_slice[mask] *= -5.5   # -10.0
+        # selected_sae_features = [58110, 31761, 15596, 52217, 18180, 6174, 4589, 43897, 31514, 64395, 23506, 29751, 62154, 45713, 44409]    #[35021, 1887]   #[35021, 18653]   # , 18653, 22433, 50118, 58286 , 22433, 50118, 58286
+        # target_slice = feature_acts[:, :, selected_sae_features]
+        # mask = target_slice > 3.0    # 30
+        # target_slice[mask] *= -2.0
         # feature_acts[:, :, selected_sae_features] = target_slice
         
         sae_out = self.hook_sae_out(

@@ -197,9 +197,24 @@ def conversation_only_text_form(key):
     ]
     return conversation
 
-def sae_hook(activations):
-    activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]
-    # activations[:,-1,:] = activations[:,-1,:]
+def sae_hook_image_text(activations):
+    activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    # activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
+    
+    # activations[:,:,:] = activations[:,:,:]  # 未经过sae的任何处理
+    # activations[:,-1,:] = activations[:,-1,:] # 未经过sae的任何处理
+    
+    return (activations,)
+
+def sae_hook_only_text(activations):
+    # activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
+    
+    # activations[:,:,:] = activations[:,:,:]  # 未经过sae的任何处理
+    # activations[:,-1,:] = activations[:,-1,:] # 未经过sae的任何处理
+    
     return (activations,)
 
 def generate_image_text(model, conversation, image, max_token):
@@ -212,7 +227,7 @@ def generate_image_text(model, conversation, image, max_token):
         pixel_values = model_inputs.pixel_values
         generated_ids = input_ids.clone()
                 
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
+        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_image_text, return_module_output=True)] 
         print("test case:")
         for ele in range(max_token):
             outputs = model.run_with_hooks(
@@ -252,7 +267,7 @@ def generate_text(model, conversation, max_token):
         # pixel_values = model_inputs.pixel_values
         generated_ids = input_ids.clone()
                 
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
+        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_only_text, return_module_output=True)] 
         print("test case:")
         for ele in range(max_token):
             outputs = model.run_with_hooks(
@@ -762,7 +777,8 @@ def eval_generation_task(forget_dataset, model, output_folder, output_file):
 ### load sparse autoencoder
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
-sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
 sparse_autoencoder, model = load_sae_model(sae_path)
 sparse_autoencoder.eval()
 
@@ -773,20 +789,26 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 
 
 # 原来模型的 
-# output_folder = 'result/llava_1.5_7b_vanilla_sae_unlearning'
-# output_file = 'llava_1.5_7b_vanilla_sae_unlearning'
+# output_folder = 'result/llava_1.5_7b_vanilla_model'
+# output_file = 'llava_1.5_7b_vanilla_model'
+
+# 原来模型的, 经过SAE, 但没有特征处理
+# output_folder = 'result/llava_1.5_7b_vanilla_model_pass_sae_forget_10'
+# output_file = 'llava_1.5_7b_vanilla_model_pass_sae_forget_10'
+output_folder = 'result/llava_1.5_7b_vanilla_model_pass_sae_retain_90'
+output_file = 'llava_1.5_7b_vanilla_model_pass_sae_retain_90'
 
 # 使用了sae 后 forget_10
-output_folder = 'result/llava_1.5_7b_sae_forget_10_2'
-output_file = 'llava_1.5_7b_sae_forget_10_2'
+# output_folder = 'result/llava_1.5_7b_sae_forget_10_6'
+# output_file = 'llava_1.5_7b_sae_forget_10_6'
 
 # 使用了sae后 retain set
-# output_folder = 'result/llava_1.5_7b_sae_retain_90_2'
-# output_file = 'llava_1.5_7b_sae_retain_90_2'
+# output_folder = 'result/llava_1.5_7b_sae_retain_90_6'
+# output_file = 'llava_1.5_7b_sae_retain_90_6'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
-# eval_fill_blank_task(retain_dataset_90, model, output_folder, output_file)         # forget_dataset_10
-eval_classification_task(forget_dataset_10, model, output_folder, output_file)
-# eval_generation_task(forget_dataset_10, model, output_folder, output_file)
+eval_fill_blank_task(retain_dataset_90, model, output_folder, output_file)         # forget_dataset_10
+eval_classification_task(retain_dataset_90, model, output_folder, output_file)
+eval_generation_task(retain_dataset_90, model, output_folder, output_file)
