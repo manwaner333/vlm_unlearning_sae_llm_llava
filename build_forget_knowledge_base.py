@@ -203,8 +203,8 @@ def generate_image_text(model, conversation, image, max_token):
 ### load sparse_autoencoder and model
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
-# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
-sae_path = "/home/coder/geng/vlm_unlearning_sae_llm_llava/checkpoints/wrif7maq_1/724984992_sparse_autoencoder_LLaVA_Vanilla_16_resid_65536.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
+# sae_path = "/home/coder/geng/vlm_unlearning_sae_llm_llava/checkpoints/wrif7maq_1/724984992_sparse_autoencoder_LLaVA_Vanilla_16_resid_65536.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/003628e7ac7aff3a437f92d691bfcf8be7799a9e/757938744_pre_trained_llava_sae_language_model_65536_update.pt"
 loaded_object = torch.load(sae_path)
 cfg = loaded_object['cfg']
@@ -237,7 +237,8 @@ Goal: 处于探索阶段的实验。 把forget 数据集上每一个人的名字
 hook_name = "hook_hidden_post"
 k=2
 total_adj_number = 0
-with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/forget_knowledge_10_base.json", "w", encoding="utf-8") as f:
+# with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/forget_knowledge_10_base.json", "w", encoding="utf-8") as f:
+with open("dataset/forget_knowledge_10_base.json", "w", encoding="utf-8") as f:
     for forget_index in range(len(forget_dataset)):
         forget_image = forget_dataset[forget_index]['image']
         forget_biography = json.loads(forget_dataset[forget_index]['biography'])

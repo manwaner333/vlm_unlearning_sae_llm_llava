@@ -197,8 +197,8 @@ def conversation_only_text_form(key):
     ]
     return conversation
 
-def sae_hook_image_text(activations):
-    activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+def sae_hook_image_text(activations, inter_features):
+    activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:], inter_features)[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
     
@@ -207,9 +207,9 @@ def sae_hook_image_text(activations):
     
     return (activations,)
 
-def sae_hook_only_text(activations):
+def sae_hook_only_text(activations, inter_features):
     # activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
-    activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    activations[:,:,:] = sparse_autoencoder(activations[:,:,:], inter_features)[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
     
     # activations[:,:,:] = activations[:,:,:]  # 未经过sae的任何处理
@@ -227,7 +227,9 @@ def generate_image_text(model, conversation, image, max_token):
         pixel_values = model_inputs.pixel_values
         generated_ids = input_ids.clone()
                 
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_image_text, return_module_output=True)] 
+        # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_image_text, return_module_output=True)]
+        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations: sae_hook_only_text(activations, []), return_module_output=True)]
+        
         print("test case:")
         for ele in range(max_token):
             outputs = model.run_with_hooks(
@@ -257,7 +259,7 @@ def generate_image_text(model, conversation, image, max_token):
         output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
     return output_texts
 
-def generate_text(model, conversation, max_token):
+def generate_text(model, conversation, max_token, inter_features):
     sentence_end_pattern = re.compile(r"[.?!]\s*$")
     with torch.no_grad():
         prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
@@ -267,7 +269,8 @@ def generate_text(model, conversation, max_token):
         # pixel_values = model_inputs.pixel_values
         generated_ids = input_ids.clone()
                 
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_only_text, return_module_output=True)] 
+        # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_only_text, return_module_output=True)]
+        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations: sae_hook_only_text(activations, inter_features), return_module_output=True)] 
         print("test case:")
         for ele in range(max_token):
             outputs = model.run_with_hooks(
@@ -297,7 +300,7 @@ def generate_text(model, conversation, max_token):
         output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
     return output_texts
         
-def evaluate_classification(classification_task, image, model, id, output_folder, output_file):
+def evaluate_classification(classification_task, image, model, joint_features, id, output_folder, output_file):
     print("################################## Classification Task Starts ##############################################")
     print("################################## Image Textual Questions ##############################################")
     image_textual_correct = 0
@@ -379,8 +382,12 @@ def evaluate_classification(classification_task, image, model, id, output_folder
         question_with_options = formulate_prompt_with_options(question, options)
         combined_question = (f"{question_with_options}"
                       f"Just give ONE letter representing the answer directly.")
+        
+        filter_joint_features = [item for item in joint_features if item['question'] == question]
+        inter_features = filter_joint_features[0]['inter_features']
+        inter_features = torch.tensor(inter_features).to(device)
         conversation = conversation_only_text_form(combined_question)
-        output_texts =  generate_text(model, conversation, max_token)
+        output_texts =  generate_text(model, conversation, max_token, inter_features)
         
         if "ASSISTANT:" in output_texts:
             assistant_response = output_texts.split("ASSISTANT:")[1].strip()
@@ -449,7 +456,7 @@ def compute_bleu(ground_truth, predicted_answer):
     return bleu_score
 
 
-def evaluate_generation(generation_task, image, model, id, output_folder, output_file):
+def evaluate_generation(generation_task, image, model, joint_features, id, output_folder, output_file):
     print("################################## Generation Task Starts ##############################################")
     
     rouge_scorer_obj = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
@@ -481,8 +488,11 @@ def evaluate_generation(generation_task, image, model, id, output_folder, output
             conversation = conversation_form(combined_question)
             output_texts = generate_image_text(model, conversation, image, max_token)
         else:
+            filter_joint_features = [item for item in joint_features if item['question'] == question]
+            inter_features = filter_joint_features[0]['inter_features']
+            inter_features = torch.tensor(inter_features).to(device)
             conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token)
+            output_texts =  generate_text(model, conversation, max_token, inter_features)
         
         if "ASSISTANT:" in output_texts:
             predicted_answer = output_texts.split("ASSISTANT:")[1].strip()
@@ -546,7 +556,7 @@ def evaluate_generation(generation_task, image, model, id, output_folder, output
         
         
         
-def evaluate_fill_blank(mask_task, image, model, id, output_folder, output_file):
+def evaluate_fill_blank(mask_task, image, model, joint_features_data, id, output_folder, output_file):
     print("################################## Fill-in-the-blank Task Starts ##############################################")
     image_textual_correct = 0
     image_textual_questions = 0
@@ -557,14 +567,18 @@ def evaluate_fill_blank(mask_task, image, model, id, output_folder, output_file)
         ground_truth = ele["Ground_Truth"]
         question_type = ele["Type"]
         
+        
         combined_question = question.replace("__", "[Blank]") + "\nPlease **ONLY** provide the correct answer that should replace the [Blank]."
         max_token = 20
         if question_type == "Image_Textual":
             conversation = conversation_form(combined_question)
             output_texts = generate_image_text(model, conversation, image, max_token)
         else:
+            filter_joint_features = [item for item in joint_features_data if item['question'] == question]
+            inter_features = filter_joint_features[0]['inter_features']
+            inter_features = torch.tensor(inter_features).to(device)
             conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token)
+            output_texts =  generate_text(model, conversation, max_token, inter_features)
             
         if "ASSISTANT:" in output_texts:
             assistant_response = output_texts.split("ASSISTANT:")[1].strip()
@@ -611,7 +625,7 @@ def evaluate_fill_blank(mask_task, image, model, id, output_folder, output_file)
         
 
 
-def eval_fill_blank_task(forget_dataset, model, output_folder, output_file):
+def eval_fill_blank_task(forget_dataset, model, joint_features_data, output_folder, output_file):
     fill_blank_image_textual_correct_total = 0
     fill_blank_image_textual_questions_total = 0
     fill_blank_pure_text_correct_total = 0
@@ -627,9 +641,10 @@ def eval_fill_blank_task(forget_dataset, model, output_folder, output_file):
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
+        filter_joint_features = [item for item in joint_features_data if item['ID'] == id]
         
         # ### fill_blank_task 
-        image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions = evaluate_fill_blank(Mask_Task, image, model, id, output_folder, output_file)
+        image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions = evaluate_fill_blank(Mask_Task, image, model, filter_joint_features, id, output_folder, output_file)
         fill_blank_image_textual_correct_total += image_textual_correct
         fill_blank_image_textual_questions_total += image_textual_questions
         fill_blank_pure_text_correct_total += pure_text_correct
@@ -658,7 +673,7 @@ def eval_fill_blank_task(forget_dataset, model, output_folder, output_file):
 
 
 
-def eval_classification_task(forget_dataset, model, output_folder, output_file):
+def eval_classification_task(forget_dataset, model, joint_features_data, output_folder, output_file):
     classification_image_textual_correct_total = 0
     classification_image_textual_questions_total = 0
     classification_pure_text_correct_total = 0
@@ -675,9 +690,10 @@ def eval_classification_task(forget_dataset, model, output_folder, output_file):
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
+        filter_joint_features = [item for item in joint_features_data if item['ID'] == id]
         
         ### classification_task
-        classification_image_textual_correct, classification_image_textual_questions, classification_pure_text_correct, classification_pure_text_questions = evaluate_classification(Classification_Task, image, model, id, output_folder, output_file)
+        classification_image_textual_correct, classification_image_textual_questions, classification_pure_text_correct, classification_pure_text_questions = evaluate_classification(Classification_Task, image, model, filter_joint_features, id, output_folder, output_file)
         classification_image_textual_correct_total += classification_image_textual_correct
         classification_image_textual_questions_total += classification_image_textual_questions
         classification_pure_text_correct_total += classification_pure_text_correct
@@ -707,7 +723,7 @@ def eval_classification_task(forget_dataset, model, output_folder, output_file):
         
     
 
-def eval_generation_task(forget_dataset, model, output_folder, output_file):
+def eval_generation_task(forget_dataset, model, joint_features_data, output_folder, output_file):
     generation_bleu_img_total = 0
     generation_rouge1_img_total = 0
     generation_rouge2_img_total = 0
@@ -730,10 +746,11 @@ def eval_generation_task(forget_dataset, model, output_folder, output_file):
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
+        filter_joint_features = [item for item in joint_features_data if item['ID'] == id]
         
         
         ### generation task
-        bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, id, output_folder, output_file)
+        bleu_img, rouge1_img, rouge2_img, rougeL_img, image_textual_questions, bleu_text, rouge1_text, rouge2_text, rougeL_text, pure_text_questions = evaluate_generation(Generation_Task, image, model, filter_joint_features, id, output_folder, output_file)
         generation_bleu_img_total += bleu_img
         generation_rouge1_img_total += rouge1_img
         generation_rouge2_img_total += rouge2_img
@@ -799,8 +816,8 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 # output_file = 'llava_1.5_7b_vanilla_model_pass_sae_retain_90'
 
 # 使用了sae 后 forget_10
-# output_folder = 'result/llava_1.5_7b_sae_forget_10_6'
-# output_file = 'llava_1.5_7b_sae_forget_10_6'
+output_folder = 'result/llava_1.5_7b_sae_joint_features_forget_10_6'
+output_file = 'llava_1.5_7b_sae_joint_features_forget_10_6'
 
 # 使用了sae后 retain set
 # output_folder = 'result/llava_1.5_7b_sae_retain_90_6'
@@ -809,6 +826,27 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
-eval_fill_blank_task(forget_dataset_10, model, output_folder, output_file)         # forget_dataset_10
-eval_classification_task(forget_dataset_10, model, output_folder, output_file)
-eval_generation_task(forget_dataset_10, model, output_folder, output_file)
+
+# joint_features = "dataset/attribute_important_tokens_infor_forget_10_mask_task_record.json"
+# joint_features_data = []
+# with open(joint_features, 'r') as file:
+#     for line in file:
+#         json_object = json.loads(line.strip())
+#         joint_features_data.append(json_object)       
+# eval_fill_blank_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)         # forget_dataset_10
+
+# joint_features = "dataset/attribute_important_tokens_infor_forget_10_classification_task_record.json"
+# joint_features_data = []
+# with open(joint_features, 'r') as file:
+#     for line in file:
+#         json_object = json.loads(line.strip())
+#         joint_features_data.append(json_object)      
+# eval_classification_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)
+
+joint_features = "dataset/attribute_important_tokens_infor_forget_10_generation_task_record.json"
+joint_features_data = []
+with open(joint_features, 'r') as file:
+    for line in file:
+        json_object = json.loads(line.strip())
+        joint_features_data.append(json_object) 
+eval_generation_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)
