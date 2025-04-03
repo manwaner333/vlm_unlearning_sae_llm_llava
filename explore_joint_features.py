@@ -240,9 +240,9 @@ sparse_autoencoder.eval()
 
 ### load dataset
 dataset_path = "MLLMMU/MLLMU-Bench"
-# forget_dataset = load_dataset(dataset_path, "forget_10")['train']
+forget_dataset = load_dataset(dataset_path, "forget_10")['train']
 # retain_dataset = load_dataset(dataset_path, "retain_90")['train']
-forget_dataset = load_dataset(dataset_path, "retain_90")['train']
+# forget_dataset = load_dataset(dataset_path, "retain_90")['train']
 
 
 
@@ -250,7 +250,7 @@ forget_dataset = load_dataset(dataset_path, "retain_90")['train']
 
 """
 Name: Experiment 1
-Goal: 处于探索阶段的实验。 将explore_joint_features.py 中生成的遗忘知识库提取出来。 
+Goal: 处于探索阶段的实验。 将build_forget_knowledge_base.py 中生成的遗忘知识库提取出来。 
 """
 
 attribute_knowledge = {}
@@ -267,20 +267,138 @@ with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/forget_knowledg
             key += 1
 
 
-"""
-Name: Experiment 1
-Goal: 根据上述提取出来的遗忘知识库， 测试forget 数据集上和retain 数据集上， 需要进行修正的比例。 目前得到的结果是， forget 上需要修正的比例为0.82， 而retain 数据集上需要修正的比例仅仅为0.22 
-"""
+# """
+# Name: Experiment 2
+# Goal: 根据上述提取出来的遗忘知识库， 测试forget 数据集上和retain 数据集上， 需要进行修正的比例。 目前得到的结果是， forget 上需要修正的比例为0.82， 而retain 数据集上需要修正的比例仅仅为0.22 
+# """
 
+# total_adj_number = 0
+# total_number = 0
+# with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_tokens_infor_retain_adj_test.json", "w", encoding="utf-8") as f:
+#     for forget_index in range(len(forget_dataset)):
+#         forget_image = forget_dataset[forget_index]['image']
+#         forget_biography = forget_dataset[forget_index]['biography']
+        
+#         name = json.loads(forget_biography)["Name"]
+
+#         Classification_Task = forget_dataset[forget_index]['Classification_Task']
+#         Generation_Task = forget_dataset[forget_index]['Generation_Task']
+#         Mask_Task = forget_dataset[forget_index]['Mask_Task']
+
+#         for ele in Mask_Task:
+#             question = ele["Question"]
+#             ground_truth = ele["Ground_Truth"]
+#             question_type = ele["Type"]
+
+#             if question_type == "Pure_Text": 
+#                 total_number += 1
+#                 flag = 0
+#                 forget_conversation = conversation_form(question)
+#                 forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#                 forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#                 forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#                 input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#                 tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+#                 forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#                 values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+#                 indices_list = indices.cpu().tolist()
+#                 res = {"name": name, "question:": question}
+                
+#                 for i in range(len(attribute_knowledge)):
+#                     sae_features1 = attribute_knowledge[i]["name_sae_features"]
+#                     sae_features2 = attribute_knowledge[i]["attribute_sae_features"]
+#                     sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+#                     print(f"sae_features1_flag: {sae_features1_flag}")
+#                     print(f"sae_features2_flag: {sae_features2_flag}")
+
+#                     ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+#                     ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+                    
+#                     if ratio1 > 0.9 and ratio2 > 0.9:
+#                         flag = 1
+#                         if flag == 1:
+#                             res["flag"] = flag
+#                             res['flag_index'] = i
+#                             res['sae_features1_flag'] = sae_features1_flag
+#                             res['sae_features2_flag'] = sae_features2_flag
+#                             total_adj_number += 1
+#                             break
+#                     else:
+#                         res["flag"] = flag
+#                         res['flag_index'] = -0
+#                         res['sae_features1_flag'] = sae_features1_flag
+#                         res['sae_features2_flag'] = sae_features2_flag
+#                 json.dump(res, f, ensure_ascii=False)
+#                 f.write("\n")
+
+#         for ele in Classification_Task['Pure_Text_Questions']:
+#             correct_answer = ele['Correct_Answer']
+#             options = ele['Options']
+#             question = ele['Question']
+
+#             # if "salary" in question.lower():
+#             total_number += 1
+#             flag = 0
+#             forget_conversation = conversation_form(question)
+#             forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+#             forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+#             forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+#             input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+#             tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+#             forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+#             values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+#             indices_list = indices.cpu().tolist()
+#             res = {"name": name, "question:": question}
+#             for i in range(len(attribute_knowledge)):
+#                 sae_features1 = attribute_knowledge[i]["name_sae_features"]
+#                 sae_features2 = attribute_knowledge[i]["attribute_sae_features"]
+#                 sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+#                 print(f"sae_features1_flag: {sae_features1_flag}")
+#                 print(f"sae_features2_flag: {sae_features2_flag}")
+
+#                 ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+#                 ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+#                 if ratio1 > 0.9 and ratio2 > 0.9:
+#                     flag = 1
+#                     if flag == 1:
+#                         res["flag"] = flag
+#                         res['flag_index'] = i
+#                         res['sae_features1_flag'] = sae_features1_flag
+#                         res['sae_features2_flag'] = sae_features2_flag
+#                         total_adj_number += 1
+#                         break
+#                 else:
+#                     res["flag"] = flag
+#                     res['flag_index'] = -0
+#                     res['sae_features1_flag'] = sae_features1_flag
+#                     res['sae_features2_flag'] = sae_features2_flag
+#             json.dump(res, f, ensure_ascii=False)
+#             f.write("\n")
+
+# print(f"total_number: {total_number}")
+# print(f"total_adjust_number: {total_adj_number}")
+
+
+
+
+"""
+Name: Experiment 3
+Goal: 根据上述提取出来的遗忘知识库， 标记forget 数据集上需要遗忘的标记， 和 retain 数据集上需要遗忘的标记 
+"""
 
 total_adj_number = 0
 total_number = 0
-with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_tokens_infor_retain_adj_test.json", "w", encoding="utf-8") as f:
+with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/attribute_important_tokens_infor_forget_10_mask_task_record.json", "w", encoding="utf-8") as f:
     for forget_index in range(len(forget_dataset)):
         forget_image = forget_dataset[forget_index]['image']
         forget_biography = forget_dataset[forget_index]['biography']
         
         name = json.loads(forget_biography)["Name"]
+        name_id = json.loads(forget_biography)["ID"]
 
         Classification_Task = forget_dataset[forget_index]['Classification_Task']
         Generation_Task = forget_dataset[forget_index]['Generation_Task']
@@ -305,7 +423,7 @@ with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_t
                 values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
                 indices_list = indices.cpu().tolist()
-                res = {"name": name, "question:": question}
+                res = {"name": name, "ID": name_id, "question:": question}
                 
                 for i in range(len(attribute_knowledge)):
                     sae_features1 = attribute_knowledge[i]["name_sae_features"]
@@ -322,17 +440,34 @@ with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_t
                         if flag == 1:
                             res["flag"] = flag
                             res['flag_index'] = i
+                            res['inter_features'] = sae_features1 + sae_features2
                             res['sae_features1_flag'] = sae_features1_flag
                             res['sae_features2_flag'] = sae_features2_flag
                             total_adj_number += 1
                             break
                     else:
                         res["flag"] = flag
-                        res['flag_index'] = -0
+                        res['flag_index'] = -10
+                        res['inter_features'] = []
                         res['sae_features1_flag'] = sae_features1_flag
                         res['sae_features2_flag'] = sae_features2_flag
                 json.dump(res, f, ensure_ascii=False)
                 f.write("\n")
+
+        
+
+
+with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/attribute_important_tokens_infor_forget_10_classification_task_record.json", "w", encoding="utf-8") as f:
+    for forget_index in range(len(forget_dataset)):
+        forget_image = forget_dataset[forget_index]['image']
+        forget_biography = forget_dataset[forget_index]['biography']
+        
+        name = json.loads(forget_biography)["Name"]
+        name_id = json.loads(forget_biography)["ID"]
+
+        Classification_Task = forget_dataset[forget_index]['Classification_Task']
+        Generation_Task = forget_dataset[forget_index]['Generation_Task']
+        Mask_Task = forget_dataset[forget_index]['Mask_Task']
 
         for ele in Classification_Task['Pure_Text_Questions']:
             correct_answer = ele['Correct_Answer']
@@ -353,7 +488,7 @@ with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_t
             values, indices = torch.topk(forget_sae_activations, k, dim=1)
 
             indices_list = indices.cpu().tolist()
-            res = {"name": name, "question:": question}
+            res = {"name": name, "ID": name_id, "question:": question}
             for i in range(len(attribute_knowledge)):
                 sae_features1 = attribute_knowledge[i]["name_sae_features"]
                 sae_features2 = attribute_knowledge[i]["attribute_sae_features"]
@@ -368,17 +503,89 @@ with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/salary_import_t
                     if flag == 1:
                         res["flag"] = flag
                         res['flag_index'] = i
+                        res['inter_features'] = sae_features1 + sae_features2
                         res['sae_features1_flag'] = sae_features1_flag
                         res['sae_features2_flag'] = sae_features2_flag
                         total_adj_number += 1
                         break
                 else:
                     res["flag"] = flag
-                    res['flag_index'] = -0
+                    res['flag_index'] = -10
+                    res['inter_features'] = []
                     res['sae_features1_flag'] = sae_features1_flag
                     res['sae_features2_flag'] = sae_features2_flag
             json.dump(res, f, ensure_ascii=False)
             f.write("\n")
+
+
+with open("/home/coder/geng/vlm_unlearning_sae_llm_llava/dataset/attribute_important_tokens_infor_forget_10_generation_task_record.json", "w", encoding="utf-8") as f:
+    for forget_index in range(len(forget_dataset)):
+        forget_image = forget_dataset[forget_index]['image']
+        forget_biography = forget_dataset[forget_index]['biography']
+        
+        name = json.loads(forget_biography)["Name"]
+        name_id = json.loads(forget_biography)["ID"]
+
+        Classification_Task = forget_dataset[forget_index]['Classification_Task']
+        Generation_Task = forget_dataset[forget_index]['Generation_Task']
+        Mask_Task = forget_dataset[forget_index]['Mask_Task']
+
+        for ele in Mask_Task:
+            question = ele["Question"]
+            ground_truth = ele["Ground_Truth"]
+            question_type = ele["Type"]
+
+            if question_type == "Pure_Text": 
+                total_number += 1
+                flag = 0
+                forget_conversation = conversation_form(question)
+                forget_prompt = model.processor.apply_chat_template(forget_conversation, add_generation_prompt=True)
+                forget_inputs = model.processor(images=forget_image, text=forget_prompt, return_tensors='pt').to(0, torch.float16)
+                forget_model_activations = get_model_activations(model, forget_inputs, sparse_autoencoder.cfg)
+
+                input_ids = model.processor.tokenizer(forget_prompt, return_tensors="pt")["input_ids"][0].detach().cpu().numpy()
+                tokens = [model.processor.tokenizer.decode(token_id) for token_id in input_ids]
+                forget_sae_activations = sparse_autoencoder.run_with_cache(forget_model_activations)[1][hook_name][0]
+                values, indices = torch.topk(forget_sae_activations, k, dim=1)
+
+                indices_list = indices.cpu().tolist()
+                res = {"name": name, "ID": name_id, "question:": question}
+                
+                for i in range(len(attribute_knowledge)):
+                    sae_features1 = attribute_knowledge[i]["name_sae_features"]
+                    sae_features2 = attribute_knowledge[i]["attribute_sae_features"]
+                    sae_features1_flag, sae_features2_flag = calculate_coverage(indices_list, sae_features1, sae_features2)
+                    print(f"sae_features1_flag: {sae_features1_flag}")
+                    print(f"sae_features2_flag: {sae_features2_flag}")
+
+                    ratio1 = sum(sae_features1_flag) / len(sae_features1_flag)
+                    ratio2 = sum(sae_features2_flag) / len(sae_features2_flag)
+                    
+                    if ratio1 > 0.9 and ratio2 > 0.9:
+                        flag = 1
+                        if flag == 1:
+                            res["flag"] = flag
+                            res['flag_index'] = i
+                            res['inter_features'] = sae_features1 + sae_features2
+                            res['sae_features1_flag'] = sae_features1_flag
+                            res['sae_features2_flag'] = sae_features2_flag
+                            total_adj_number += 1
+                            break
+                    else:
+                        res["flag"] = flag
+                        res['flag_index'] = -10
+                        res['inter_features'] = []
+                        res['sae_features1_flag'] = sae_features1_flag
+                        res['sae_features2_flag'] = sae_features2_flag
+                json.dump(res, f, ensure_ascii=False)
+                f.write("\n")
+
+
+
+
+
+
+
 
 print(f"total_number: {total_number}")
 print(f"total_adjust_number: {total_adj_number}")

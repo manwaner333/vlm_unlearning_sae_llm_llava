@@ -198,7 +198,7 @@ def conversation_only_text_form(key):
     return conversation
 
 def sae_hook_image_text(activations):
-    activations[:,0:575,:] = sparse_autoencoder(activations[:,0:575,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
     
@@ -209,10 +209,10 @@ def sae_hook_image_text(activations):
 
 def sae_hook_only_text(activations):
     # activations[:,575:,:] = sparse_autoencoder(activations[:,575:,:])[0] # 包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
-    # activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
+    activations[:,:,:] = sparse_autoencoder(activations[:,:,:])[0]  # 不包含image的输出， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块， 但是所有的文本部(问题+答案))都经历了sae本身reconstruct的loss
     # activations[:,-1,:] = sparse_autoencoder(activations[:,-1,:])[0]   #可以含有图片也可以不含有图片， 经过sae, sae特征干预与否，取决于sparse_autoencoder.py 模块，只有回答部分经历了sae本身reconstruct的loss
     
-    activations[:,:,:] = activations[:,:,:]  # 未经过sae的任何处理
+    # activations[:,:,:] = activations[:,:,:]  # 未经过sae的任何处理
     # activations[:,-1,:] = activations[:,-1,:] # 未经过sae的任何处理
     
     return (activations,)
@@ -370,58 +370,58 @@ def evaluate_classification(classification_task, image, model, id, output_folder
             f.write(json.dumps(result) + "\n")
         
         
-    # print("################################## Textual Questions ##############################################")
-    # for ele in classification_task['Pure_Text_Questions']:
-    #     correct_answer = ele['Correct_Answer']
-    #     options = ele['Options']
-    #     question = ele['Question']
+    print("################################## Textual Questions ##############################################")
+    for ele in classification_task['Pure_Text_Questions']:
+        correct_answer = ele['Correct_Answer']
+        options = ele['Options']
+        question = ele['Question']
         
-    #     question_with_options = formulate_prompt_with_options(question, options)
-    #     combined_question = (f"{question_with_options}"
-    #                   f"Just give ONE letter representing the answer directly.")
-    #     conversation = conversation_only_text_form(combined_question)
-    #     output_texts =  generate_text(model, conversation, max_token)
+        question_with_options = formulate_prompt_with_options(question, options)
+        combined_question = (f"{question_with_options}"
+                      f"Just give ONE letter representing the answer directly.")
+        conversation = conversation_only_text_form(combined_question)
+        output_texts =  generate_text(model, conversation, max_token)
         
-    #     if "ASSISTANT:" in output_texts:
-    #         assistant_response = output_texts.split("ASSISTANT:")[1].strip()
-    #     elif "Answer:" in output_texts:
-    #         assistant_response = output_texts.split("Answer:")[1].strip()
-    #     else:
-    #         assistant_response = output_texts.strip()
+        if "ASSISTANT:" in output_texts:
+            assistant_response = output_texts.split("ASSISTANT:")[1].strip()
+        elif "Answer:" in output_texts:
+            assistant_response = output_texts.split("Answer:")[1].strip()
+        else:
+            assistant_response = output_texts.strip()
             
-    #     predicted_answer = assistant_response[0].upper() if assistant_response and assistant_response[0].upper() in options else None
+        predicted_answer = assistant_response[0].upper() if assistant_response and assistant_response[0].upper() in options else None
         
-    #     print("id: ", id)    
-    #     print("Prompt: ", combined_question)
-    #     print("Model Answer: ", predicted_answer)
-    #     print("Correct Answer: ", correct_answer)
-    #     print("The model answer is: ", predicted_answer == correct_answer)
-    #     print("\n")
+        print("id: ", id)    
+        print("Prompt: ", combined_question)
+        print("Model Answer: ", predicted_answer)
+        print("Correct Answer: ", correct_answer)
+        print("The model answer is: ", predicted_answer == correct_answer)
+        print("\n")
         
-    #     # if correct_answer.lower() in assistant_response.lower() or assistant_response.lower() in correct_answer.lower():
-    #     #     pure_text_correct += 1
-    #     # pure_text_questions += 1
+        # if correct_answer.lower() in assistant_response.lower() or assistant_response.lower() in correct_answer.lower():
+        #     pure_text_correct += 1
+        # pure_text_questions += 1
         
-    #     if predicted_answer == correct_answer:
-    #         pure_text_correct += 1
-    #     pure_text_questions += 1
+        if predicted_answer == correct_answer:
+            pure_text_correct += 1
+        pure_text_questions += 1
         
-    #     result = {
-    #             "id": id,
-    #             "question_type": "Pure_Text",
-    #             "question": question,
-    #             "model_answer": assistant_response,
-    #             "ground_truth": correct_answer,
-    #             "prompt": combined_question,
-    #             "generated_answer": output_texts,
-    #             "image_textual_correct": image_textual_correct,
-    #             "image_textual_questions": image_textual_questions,
-    #             "pure_text_correct": pure_text_correct,
-    #             "pure_text_questions": pure_text_questions
-    #         }
+        result = {
+                "id": id,
+                "question_type": "Pure_Text",
+                "question": question,
+                "model_answer": assistant_response,
+                "ground_truth": correct_answer,
+                "prompt": combined_question,
+                "generated_answer": output_texts,
+                "image_textual_correct": image_textual_correct,
+                "image_textual_questions": image_textual_questions,
+                "pure_text_correct": pure_text_correct,
+                "pure_text_questions": pure_text_questions
+            }
             
-    #     with open(f'{output_folder}/{output_file}_classification_results_official.json', 'a') as f:
-    #         f.write(json.dumps(result) + "\n")
+        with open(f'{output_folder}/{output_file}_classification_results_official.json', 'a') as f:
+            f.write(json.dumps(result) + "\n")
         
     return image_textual_correct, image_textual_questions, pure_text_correct, pure_text_questions
 
@@ -511,13 +511,13 @@ def evaluate_generation(generation_task, image, model, id, output_folder, output
             rouge2_img += rouge_scores['rouge2'].fmeasure
             rougeL_img += rouge_scores['rougeL'].fmeasure
             image_textual_questions += 1
-        # else:
+        else:
             # Accumulate scores for Pure_Text questions
-            # bleu_text += bleu_score
-            # rouge1_text += rouge_scores['rouge1'].fmeasure
-            # rouge2_text += rouge_scores['rouge2'].fmeasure
-            # rougeL_text += rouge_scores['rougeL'].fmeasure
-            # pure_text_questions += 1
+            bleu_text += bleu_score
+            rouge1_text += rouge_scores['rouge1'].fmeasure
+            rouge2_text += rouge_scores['rouge2'].fmeasure
+            rougeL_text += rouge_scores['rougeL'].fmeasure
+            pure_text_questions += 1
                 
         result = {
             "id": id,
@@ -562,9 +562,9 @@ def evaluate_fill_blank(mask_task, image, model, id, output_folder, output_file)
         if question_type == "Image_Textual":
             conversation = conversation_form(combined_question)
             output_texts = generate_image_text(model, conversation, image, max_token)
-        # else:
-        #     conversation = conversation_only_text_form(combined_question)
-        #     output_texts =  generate_text(model, conversation, max_token)
+        else:
+            conversation = conversation_only_text_form(combined_question)
+            output_texts =  generate_text(model, conversation, max_token)
             
         if "ASSISTANT:" in output_texts:
             assistant_response = output_texts.split("ASSISTANT:")[1].strip()
@@ -584,10 +584,10 @@ def evaluate_fill_blank(mask_task, image, model, id, output_folder, output_file)
             if ground_truth.lower() in assistant_response.lower(): # fill_blank_pure_text_questions_total
                 image_textual_correct += 1
             image_textual_questions += 1
-        # elif question_type == "Pure_Text":
-        #     if ground_truth.lower() in assistant_response.lower(): # or assistant_response.lower() in ground_truth.lower()
-        #         pure_text_correct += 1
-        #     pure_text_questions += 1
+        elif question_type == "Pure_Text":
+            if ground_truth.lower() in assistant_response.lower(): # or assistant_response.lower() in ground_truth.lower()
+                pure_text_correct += 1
+            pure_text_questions += 1
         
         result = {
                 "id": id,
@@ -637,14 +637,14 @@ def eval_fill_blank_task(forget_dataset, model, output_folder, output_file):
     
     
     fill_blank_image_textual_accuracy = (fill_blank_image_textual_correct_total / fill_blank_image_textual_questions_total) * 100 if fill_blank_image_textual_questions_total > 0 else 0
-    # fill_blank_pure_text_accuracy = (fill_blank_pure_text_correct_total / fill_blank_pure_text_questions_total) * 100 if fill_blank_pure_text_questions_total > 0 else 0
+    fill_blank_pure_text_accuracy = (fill_blank_pure_text_correct_total / fill_blank_pure_text_questions_total) * 100 if fill_blank_pure_text_questions_total > 0 else 0
 
     print(f"total_image_textual_correct: {fill_blank_image_textual_correct_total}")
     print(f"total_image_textual_questions: {fill_blank_image_textual_questions_total}")
-    # print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}")
-    # print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}")
+    print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}")
+    print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}")
     print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%")
-    # print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%")
+    print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%")
     
     with open(f'{output_folder}/{output_file}_fill_blank_results_official.txt', 'w', encoding="utf-8") as file:
         print(f"total_image_textual_correct: {fill_blank_image_textual_correct_total}", file=file)
@@ -652,7 +652,7 @@ def eval_fill_blank_task(forget_dataset, model, output_folder, output_file):
         print(f"total_pure_text_correct: {fill_blank_pure_text_correct_total}", file=file)
         print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}", file=file)
         print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%", file=file)
-        # print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%", file=file)
+        print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%", file=file)
      
 
 
@@ -680,29 +680,29 @@ def eval_classification_task(forget_dataset, model, output_folder, output_file):
         classification_image_textual_correct, classification_image_textual_questions, classification_pure_text_correct, classification_pure_text_questions = evaluate_classification(Classification_Task, image, model, id, output_folder, output_file)
         classification_image_textual_correct_total += classification_image_textual_correct
         classification_image_textual_questions_total += classification_image_textual_questions
-        # classification_pure_text_correct_total += classification_pure_text_correct
-        # classification_pure_text_questions_total += classification_pure_text_questions 
+        classification_pure_text_correct_total += classification_pure_text_correct
+        classification_pure_text_questions_total += classification_pure_text_questions 
     
     
     classification_image_textual_accuracy = (classification_image_textual_correct_total / classification_image_textual_questions_total) * 100 if classification_image_textual_questions_total > 0 else 0
-    # classification_pure_text_accuracy = (classification_pure_text_correct_total / classification_pure_text_questions_total) * 100 if classification_pure_text_questions_total > 0 else 0
+    classification_pure_text_accuracy = (classification_pure_text_correct_total / classification_pure_text_questions_total) * 100 if classification_pure_text_questions_total > 0 else 0
 
     print(f"classification_image_textual_correct_total: {classification_image_textual_correct_total}")
     print(f"classification_image_textual_questions_total: {classification_image_textual_questions_total}")
-    # print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}")
-    # print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}")
+    print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}")
+    print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}")
         
     print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%")
-    # print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%")
+    print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%")
     
     with open(f'{output_folder}/{output_file}_classification_results_official.txt', 'w', encoding="utf-8") as file:
         print(f"classification_image_textual_correct_total: {classification_image_textual_correct_total}", file=file)
         print(f"classification_image_textual_questions_total: {classification_image_textual_questions_total}", file=file)
-        # print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}", file=file)
-        # print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}", file=file)
+        print(f"classification_pure_text_correct_total: {classification_pure_text_correct_total}", file=file)
+        print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}", file=file)
             
         print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%", file=file)
-        # print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%", file=file)   
+        print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%", file=file)   
         
         
     
@@ -778,8 +778,7 @@ def eval_generation_task(forget_dataset, model, output_folder, output_file):
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c56dd1601694cfb7a43202199b0f25a4b617a83b/32954364_pre_trained_llava_sae_language_model_65536.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/424fb7f12fba943f7b029262f6fb1d9c2f0f3262/131815620_pre_trained_llava_sae_language_model_65536_update.pt"
 # sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/9307c4400294c174480ba20955c992408f6f4413/395446248_pre_trained_llava_sae_language_model_65536_update.pt"
-# sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
-sae_path = "/home/coder/geng/vlm_unlearning_sae_llm_llava/checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/2621440_sae_image_model_activations_7.pt"
+sae_path = "checkpoints/models--jiahuimbzuai--sae_64/snapshots/c19ed8ba9460def36b0931e2555bbe0b0893ebf3/724984992_pre_trained_llava_sae_language_model_65536_update.pt"
 sparse_autoencoder, model = load_sae_model(sae_path)
 sparse_autoencoder.eval()
 
@@ -794,18 +793,18 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 # output_file = 'llava_1.5_7b_vanilla_model'
 
 # 原来模型的, 经过SAE, 但没有特征处理
-# output_folder = 'result/llava_1.5_7b_vanilla_model_pass_image_sae_forget_10'
-# output_file = 'llava_1.5_7b_vanilla_model_pass_image_sae_forget_10'
-# output_folder = 'result/llava_1.5_7b_vanilla_model_pass_image_sae_retain_90'
-# output_file = 'llava_1.5_7b_vanilla_model_pass_image_sae_retain_90'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_pass_sae_forget_10'
+# output_file = 'llava_1.5_7b_vanilla_model_pass_sae_forget_10'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_pass_sae_retain_90'
+# output_file = 'llava_1.5_7b_vanilla_model_pass_sae_retain_90'
 
 # 使用了sae 后 forget_10
-output_folder = 'result/llava_1.5_7b_image_sae_forget_10_1_5.0'
-output_file = 'llava_1.5_7b_image_sae_forget_10_1_5.0'
+# output_folder = 'result/llava_1.5_7b_sae_forget_10_6'
+# output_file = 'llava_1.5_7b_sae_forget_10_6'
 
 # 使用了sae后 retain set
-# output_folder = 'result/llava_1.5_7b_image_sae_retain_90_1_5.0'
-# output_file = 'llava_1.5_7b_image_sae_retain_90_1_5.0'
+# output_folder = 'result/llava_1.5_7b_sae_retain_90_6'
+# output_file = 'llava_1.5_7b_sae_retain_90_6'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
