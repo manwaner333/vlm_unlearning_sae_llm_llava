@@ -217,6 +217,48 @@ def sae_hook_only_text(activations, inter_features):
     
     return (activations,)
 
+# def generate_image_text(model, conversation, image, max_token):
+#     sentence_end_pattern = re.compile(r"[.?!]\s*$")
+#     with torch.no_grad():
+#         prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+#         model_inputs = model.processor(images=image, text=prompt, return_tensors='pt').to(0, torch.float16)
+#         input_ids = model_inputs.input_ids
+#         attention_mask = model_inputs.attention_mask
+#         pixel_values = model_inputs.pixel_values
+#         generated_ids = input_ids.clone()
+                
+#         # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_image_text, return_module_output=True)]
+#         sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations: sae_hook_only_text(activations, []), return_module_output=True)]
+        
+#         print("test case:")
+#         for ele in range(max_token):
+#             outputs = model.run_with_hooks(
+#                 sae_hooks,
+#                 return_type='output',
+#                 input_ids=generated_ids,
+#                 attention_mask=attention_mask,
+#                 pixel_values=pixel_values,
+#                 # image_sizes=image_sizes,
+#             )
+#             logits = outputs.logits[:, -1, :]  
+#             next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
+            
+#             if next_token == model.model.config.eos_token_id:
+#                 break
+            
+#             generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+#             new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
+#             attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
+            
+#             decoded_text = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+#             if sentence_end_pattern.search(decoded_text):
+#                 break
+    
+#             torch.cuda.empty_cache()
+
+#         output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
+#     return output_texts
+
 def generate_image_text(model, conversation, image, max_token):
     sentence_end_pattern = re.compile(r"[.?!]\s*$")
     with torch.no_grad():
@@ -227,14 +269,10 @@ def generate_image_text(model, conversation, image, max_token):
         pixel_values = model_inputs.pixel_values
         generated_ids = input_ids.clone()
                 
-        # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook_image_text, return_module_output=True)]
-        sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, lambda activations: sae_hook_only_text(activations, []), return_module_output=True)]
-        
+        # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
         print("test case:")
         for ele in range(max_token):
-            outputs = model.run_with_hooks(
-                sae_hooks,
-                return_type='output',
+            outputs = model(
                 input_ids=generated_ids,
                 attention_mask=attention_mask,
                 pixel_values=pixel_values,
@@ -247,7 +285,7 @@ def generate_image_text(model, conversation, image, max_token):
                 break
             
             generated_ids = torch.cat([generated_ids, next_token], dim=-1)
-            new_mask = torch.ones((attention_mask.shape[0], 1), device=sparse_autoencoder.cfg.device, dtype=attention_mask.dtype)
+            new_mask = torch.ones((attention_mask.shape[0], 1), device=model.model.device, dtype=attention_mask.dtype)
             attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
             
             decoded_text = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
@@ -259,7 +297,8 @@ def generate_image_text(model, conversation, image, max_token):
         output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
     return output_texts
 
-def generate_text(model, conversation, max_token, inter_features):
+
+def generate_joint_features_text(model, conversation, max_token, inter_features):
     sentence_end_pattern = re.compile(r"[.?!]\s*$")
     with torch.no_grad():
         prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
@@ -299,6 +338,47 @@ def generate_text(model, conversation, max_token, inter_features):
 
         output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
     return output_texts
+
+
+def generate_text(model, conversation, max_token):
+    sentence_end_pattern = re.compile(r"[.?!]\s*$")
+    with torch.no_grad():
+        prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+        model_inputs = model.processor(text=prompt, return_tensors='pt').to(0, torch.float16)
+        input_ids = model_inputs.input_ids
+        attention_mask = model_inputs.attention_mask
+        # pixel_values = model_inputs.pixel_values
+        generated_ids = input_ids.clone()
+                
+        # sae_hooks = [Hook(sparse_autoencoder.cfg.block_layer, sparse_autoencoder.cfg.module_name, sae_hook, return_module_output=True)] 
+        print("test case:")
+        for ele in range(max_token):
+            outputs = model(
+                input_ids=generated_ids,
+                attention_mask=attention_mask,
+                # pixel_values=pixel_values,
+                # image_sizes=image_sizes,
+            )
+            logits = outputs.logits[:, -1, :]  
+            next_token = torch.argmax(logits, dim=-1).unsqueeze(-1)
+            
+            if next_token == model.model.config.eos_token_id:
+                break
+    
+            generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+            new_mask = torch.ones((attention_mask.shape[0], 1), device=model.model.device, dtype=attention_mask.dtype)
+            attention_mask = torch.cat([attention_mask, new_mask], dim=-1)
+            
+            decoded_text = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            if sentence_end_pattern.search(decoded_text):
+                break
+            
+            torch.cuda.empty_cache()
+
+        output_texts = model.processor.tokenizer.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
+    return output_texts
+
+
         
 def evaluate_classification(classification_task, image, model, joint_features, id, output_folder, output_file):
     print("################################## Classification Task Starts ##############################################")
@@ -387,7 +467,10 @@ def evaluate_classification(classification_task, image, model, joint_features, i
         inter_features = filter_joint_features[0]['inter_features']
         inter_features = torch.tensor(inter_features).to(device)
         conversation = conversation_only_text_form(combined_question)
-        output_texts =  generate_text(model, conversation, max_token, inter_features)
+        if (len(inter_features) > 0):
+            output_texts =  generate_joint_features_text(model, conversation, max_token, inter_features)
+        else:
+            output_texts =  generate_text(model, conversation, max_token)
         
         if "ASSISTANT:" in output_texts:
             assistant_response = output_texts.split("ASSISTANT:")[1].strip()
@@ -492,7 +575,10 @@ def evaluate_generation(generation_task, image, model, joint_features, id, outpu
             inter_features = filter_joint_features[0]['inter_features']
             inter_features = torch.tensor(inter_features).to(device)
             conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token, inter_features)
+            if (len(inter_features) > 0):
+                output_texts =  generate_joint_features_text(model, conversation, max_token, inter_features)
+            else:
+                output_texts =  generate_text(model, conversation, max_token)
         
         if "ASSISTANT:" in output_texts:
             predicted_answer = output_texts.split("ASSISTANT:")[1].strip()
@@ -578,7 +664,10 @@ def evaluate_fill_blank(mask_task, image, model, joint_features_data, id, output
             inter_features = filter_joint_features[0]['inter_features']
             inter_features = torch.tensor(inter_features).to(device)
             conversation = conversation_only_text_form(combined_question)
-            output_texts =  generate_text(model, conversation, max_token, inter_features)
+            if len(inter_features) > 0:
+                output_texts =  generate_joint_features_text(model, conversation, max_token, inter_features)
+            else:
+                output_texts =  generate_text(model, conversation, max_token)
             
         if "ASSISTANT:" in output_texts:
             assistant_response = output_texts.split("ASSISTANT:")[1].strip()
@@ -816,37 +905,40 @@ retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 # output_file = 'llava_1.5_7b_vanilla_model_pass_sae_retain_90'
 
 # 使用了sae 后 forget_10
-output_folder = 'result/llava_1.5_7b_sae_joint_features_forget_10_6'
-output_file = 'llava_1.5_7b_sae_joint_features_forget_10_6'
+# output_folder = 'result/llava_1.5_7b_sae_joint_features_forget_10'
+# output_file = 'llava_1.5_7b_sae_joint_features_forget_10'
 
 # 使用了sae后 retain set
-# output_folder = 'result/llava_1.5_7b_sae_retain_90_6'
-# output_file = 'llava_1.5_7b_sae_retain_90_6'
+output_folder = 'result/llava_1.5_7b_sae_joint_features_retain_90'
+output_file = 'llava_1.5_7b_sae_joint_features_retain_90'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
 
 # joint_features = "dataset/attribute_important_tokens_infor_forget_10_mask_task_record.json"
-# joint_features_data = []
-# with open(joint_features, 'r') as file:
-#     for line in file:
-#         json_object = json.loads(line.strip())
-#         joint_features_data.append(json_object)       
-# eval_fill_blank_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)         # forget_dataset_10
+joint_features = "dataset/attribute_important_tokens_infor_retain_90_mask_task_record.json"
+joint_features_data = []
+with open(joint_features, 'r') as file:
+    for line in file:
+        json_object = json.loads(line.strip())
+        joint_features_data.append(json_object)       
+eval_fill_blank_task(retain_dataset_90, model, joint_features_data, output_folder, output_file)         # forget_dataset_10
 
 # joint_features = "dataset/attribute_important_tokens_infor_forget_10_classification_task_record.json"
-# joint_features_data = []
-# with open(joint_features, 'r') as file:
-#     for line in file:
-#         json_object = json.loads(line.strip())
-#         joint_features_data.append(json_object)      
-# eval_classification_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)
+joint_features = "dataset/attribute_important_tokens_infor_retain_90_classification_task_record.json"
+joint_features_data = []
+with open(joint_features, 'r') as file:
+    for line in file:
+        json_object = json.loads(line.strip())
+        joint_features_data.append(json_object)      
+eval_classification_task(retain_dataset_90, model, joint_features_data, output_folder, output_file)
 
-joint_features = "dataset/attribute_important_tokens_infor_forget_10_generation_task_record.json"
+# joint_features = "dataset/attribute_important_tokens_infor_forget_10_generation_task_record.json"
+joint_features = "dataset/attribute_important_tokens_infor_retain_90_generation_task_record.json"
 joint_features_data = []
 with open(joint_features, 'r') as file:
     for line in file:
         json_object = json.loads(line.strip())
         joint_features_data.append(json_object) 
-eval_generation_task(forget_dataset_10, model, joint_features_data, output_folder, output_file)
+eval_generation_task(retain_dataset_90, model, joint_features_data, output_folder, output_file)

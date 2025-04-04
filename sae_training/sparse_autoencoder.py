@@ -111,6 +111,8 @@ class SparseAutoencoder(HookedRootModule):
         # topk_indices = [37665, 40447, 149, 61562, 32467, 65173]
         # for index in topk_indices:
         #     feature_acts[0, index] = feature_acts[0, index] * (-1.5)
+        
+        print(f"inter_features: {inter_features}")
         if len(inter_features) > 0:
             feature_acts[0, :, inter_features] = feature_acts[0, :, inter_features] * (-1.5)
         
