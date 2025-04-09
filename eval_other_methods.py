@@ -591,19 +591,32 @@ def evaluate_fill_blank(mask_task, image, model, processor, id, output_folder, o
     return image_textual_correct,  image_textual_questions, pure_text_correct, pure_text_questions    
         
 
-def eval_fill_blank_task(forget_dataset, model, processor, output_folder, output_file):
+def eval_fill_blank_task(forget_dataset, model, processor, output_folder, output_file, mode, input_ids_file=None):
     fill_blank_image_textual_correct_total = 0
     fill_blank_image_textual_questions_total = 0
     fill_blank_pure_text_correct_total = 0
     fill_blank_pure_text_questions_total = 0
     
+    if mode == "test":
+        filter_ids = []
+        for index in range(len(input_ids_file)):
+            filter_ids.append(input_ids_file[index]['ID'])
+    
+        unique_list = list(set(filter_ids))
+        filtered_dataset = forget_dataset.filter(lambda example: example['ID'] in unique_list)
+        forget_dataset = filtered_dataset
+    
     for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
         id = forget_dataset[index]['ID']
         print(f"ID: {id}")
-        image = forget_dataset[index]['image']
-        biography = forget_dataset[index]['biography']
-        question = forget_dataset[index]['question']
-        answer = forget_dataset[index]['answer']
+        if mode == "test":
+            image = random.choice(forget_dataset[index]["images"])
+        else:
+            image = forget_dataset[index]['image']
+        # image = forget_dataset[index]['image']
+        # biography = forget_dataset[index]['biography']
+        # question = forget_dataset[index]['question']
+        # answer = forget_dataset[index]['answer']
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
@@ -634,24 +647,37 @@ def eval_fill_blank_task(forget_dataset, model, processor, output_folder, output
         print(f"total_pure_text_questions: {fill_blank_pure_text_questions_total}", file=file)
         print(f"fill blank Image-Textual Question Accuracy: {fill_blank_image_textual_accuracy:.2f}%", file=file)
         print(f"fill blank Pure Text Question Accuracy: {fill_blank_pure_text_accuracy:.2f}%", file=file)
+        print(f"fill blank Image-Textual and Pure Text Question Accuracy: {(fill_blank_image_textual_accuracy+fill_blank_pure_text_accuracy)*0.5}%", file=file)
     
         
     
 
-def eval_classification_task(forget_dataset, model, processor, output_folder, output_file):
+def eval_classification_task(forget_dataset, model, processor, output_folder, output_file, mode, input_ids_file=None):
     classification_image_textual_correct_total = 0
     classification_image_textual_questions_total = 0
     classification_pure_text_correct_total = 0
     classification_pure_text_questions_total = 0
     
+    if mode == "test":
+        filter_ids = []
+        for index in range(len(input_ids_file)):
+            filter_ids.append(input_ids_file[index]['ID'])
+    
+        unique_list = list(set(filter_ids))
+        filtered_dataset = forget_dataset.filter(lambda example: example['ID'] in unique_list)
+        forget_dataset = filtered_dataset
     
     for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
         id = forget_dataset[index]['ID']
         print(f"ID: {id}")
-        image = forget_dataset[index]['image']
-        biography = forget_dataset[index]['biography']
-        question = forget_dataset[index]['question']
-        answer = forget_dataset[index]['answer']
+        if mode == "test":
+            image = random.choice(forget_dataset[index]["images"])
+        else:
+            image = forget_dataset[index]['image']
+        # image = forget_dataset[index]['image']
+        # biography = forget_dataset[index]['biography']
+        # question = forget_dataset[index]['question']
+        # answer = forget_dataset[index]['answer']
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
@@ -683,13 +709,14 @@ def eval_classification_task(forget_dataset, model, processor, output_folder, ou
         print(f"classification_pure_text_questions_total: {classification_pure_text_questions_total}", file=file)
             
         print(f"Classification Image-Textual Question Accuracy: {classification_image_textual_accuracy:.2f}%", file=file)
-        print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%", file=file)   
+        print(f"Classification Pure Text Question Accuracy: {classification_pure_text_accuracy:.2f}%", file=file)
+        print(f"Classification Image-Textual and Pure Text Question Accuracy: {(classification_image_textual_accuracy + classification_pure_text_accuracy)*0.5}%", file=file)   
         
     
 
 
 
-def eval_generation_task(forget_dataset, model, processor, output_folder, output_file):
+def eval_generation_task(forget_dataset, model, processor, output_folder, output_file, mode, input_ids_file=None):
     generation_bleu_img_total = 0
     generation_rouge1_img_total = 0
     generation_rouge2_img_total = 0
@@ -701,14 +728,26 @@ def eval_generation_task(forget_dataset, model, processor, output_folder, output
     generation_rougeL_text_total = 0
     generation_pure_text_questions_total = 0 
     
+    if mode == "test":
+        filter_ids = []
+        for index in range(len(input_ids_file)):
+            filter_ids.append(input_ids_file[index]['ID'])
+    
+        unique_list = list(set(filter_ids))
+        filtered_dataset = forget_dataset.filter(lambda example: example['ID'] in unique_list)
+        forget_dataset = filtered_dataset
     
     for index in range(len(forget_dataset)):  # [0,1,2]:  # range(0, 50):
         id = forget_dataset[index]['ID']
         print(f"ID: {id}")
-        image = forget_dataset[index]['image']
-        biography = forget_dataset[index]['biography']
-        question = forget_dataset[index]['question']
-        answer = forget_dataset[index]['answer']
+        if mode == "test":
+            image = random.choice(forget_dataset[index]["images"])
+        else:
+            image = forget_dataset[index]['image']
+        # image = forget_dataset[index]['image']
+        # biography = forget_dataset[index]['biography']
+        # question = forget_dataset[index]['question']
+        # answer = forget_dataset[index]['answer']
         Classification_Task = forget_dataset[index]['Classification_Task']
         Generation_Task = forget_dataset[index]['Generation_Task']
         Mask_Task = forget_dataset[index]['Mask_Task']
@@ -764,6 +803,8 @@ model.eval()
 dataset_path = "MLLMMU/MLLMU-Bench"
 forget_dataset_5 = load_dataset(dataset_path, "forget_5")['train']
 retain_dataset_95 = load_dataset(dataset_path, "retain_95")['train']
+test_dataset = load_dataset(dataset_path, "Test_Set")['train']
+real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 
 # forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
 # retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
@@ -776,10 +817,23 @@ retain_dataset_95 = load_dataset(dataset_path, "retain_95")['train']
 output_folder = 'result/llava_1.5_7b_vanilla_model_retain_95'
 output_file = 'llava_1.5_7b_vanilla_model_retain_95'
 
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5_test'
+# output_file = 'llava_1.5_7b_vanilla_model_forget_5_test'
+
+# output_folder = 'result/llava_1.5_7b_vanilla_model_real_celebrity'
+# output_file = 'llava_1.5_7b_vanilla_model_real_celebrity'
+
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
+### generate reuslts
+mode = "normal"
+# eval_fill_blank_task(retain_dataset_95, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  test_dataset
+eval_classification_task(retain_dataset_95, model, processor, output_folder, output_file, mode)
+# eval_generation_task(retain_dataset_95, model, processor, output_folder, output_file, mode)
 
-eval_fill_blank_task(retain_dataset_95, model, processor, output_folder, output_file)         # forget_dataset_10
-eval_classification_task(retain_dataset_95, model, processor, output_folder, output_file)
-eval_generation_task(retain_dataset_95, model, processor, output_folder, output_file)
+
+# mode = "test"
+# eval_fill_blank_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_5)   
+# eval_classification_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_5)
+# eval_generation_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_5)
