@@ -97,60 +97,65 @@ def evaluate_factuality_questions(image_id, question, generated_answer, ground_t
     return evaluation_result
 
 
-output_folder = 'result/llava_1.5_7b_vanilla_model_forget_10'
+output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
+file_name = 'llava_1.5_7b_vanilla_model_forget_5_fill_blank_results_official'
 
 ### fill_blank_task
-# fill_blank_file = 'result/llava_1.5_7b_vanilla_model_forget_10/llava_1.5_7b_vanilla_model_forget_10_fill_blank_results_official.json'
-# fill_blank_scores = []
-# with open(fill_blank_file, "r", encoding="utf-8") as f:
-#     for line in f:
-#         data = json.loads(line.strip())
-#         image_id = data['id']
-#         question_type = data['question type']
-#         question = data['question']
-#         model_answer = data['model_answer']
-#         ground_truth = data['ground_truth']
-#         prompt = data['prompt']
-#         generated_answer = data['generated_answer']
-#         image_textual_correct = data['image_textual_correct']
-#         image_textual_questions = data['image_textual_questions']
-#         pure_text_correct = data['pure_text_correct']
-#         pure_text_questions = data['pure_text_questions']
-#         evaluation = evaluate_factuality_questions(image_id, question, model_answer, ground_truth, task_type="generation")
-#         factuality_score, justification = extract_factuality_score_and_justification(evaluation)
+fill_blank_file = f'{output_folder}/{file_name}.json'
+fill_blank_scores = []
+with open(fill_blank_file, "r", encoding="utf-8") as f:
+    for line in f:
+        data = json.loads(line.strip())
+        image_id = data['id']
+        question_type = data['question_type']
+        question = data['question']
+        model_answer = data['model_answer']
+        ground_truth = data['ground_truth']
+        prompt = data['prompt']
+        generated_answer = data['generated_answer']
+        image_textual_correct = data['image_textual_correct']
+        image_textual_questions = data['image_textual_questions']
+        pure_text_correct = data['pure_text_correct']
+        pure_text_questions = data['pure_text_questions']
+        evaluation = evaluate_factuality_questions(image_id, question, model_answer, ground_truth, task_type="generation")
+        factuality_score, justification = extract_factuality_score_and_justification(evaluation)
         
-#         if factuality_score is not None:
-#             fill_blank_scores.append(factuality_score)
+        if factuality_score is not None:
+            fill_blank_scores.append(factuality_score)
         
-#         result = {
-#                 "id": image_id,
-#                 "question_type": question_type,
-#                 "question": question,
-#                 "model_answer": model_answer,
-#                 "ground_truth": ground_truth,
-#                 "prompt": prompt,
-#                 "generated_answer": generated_answer,
-#                 "image_textual_correct": image_textual_correct,
-#                 "image_textual_questions": image_textual_questions,
-#                 "pure_text_correct": pure_text_correct,
-#                 "pure_text_questions": pure_text_questions,
-#                 "factuality_score": factuality_score,
-#                 "justification": justification
-#             }
+        result = {
+                "id": image_id,
+                "question_type": question_type,
+                "question": question,
+                "model_answer": model_answer,
+                "ground_truth": ground_truth,
+                "prompt": prompt,
+                "generated_answer": generated_answer,
+                "image_textual_correct": image_textual_correct,
+                "image_textual_questions": image_textual_questions,
+                "pure_text_correct": pure_text_correct,
+                "pure_text_questions": pure_text_questions,
+                "factuality_score": factuality_score,
+                "justification": justification
+            }
             
-#         with open(f'{output_folder}/llava_1.5_7b_vanilla_model_forget_10_fill_blank_results_official_add_fact.json', 'a') as f:
-#             f.write(json.dumps(result) + "\n")
+        with open(f'{output_folder}/{file_name}_add_fact.json', 'a') as f:
+            f.write(json.dumps(result) + "\n")
         
-        
+
+
+output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
+file_name = 'llava_1.5_7b_vanilla_model_forget_5_generation_results_official'
+
 ### generation_task
-generation_file = 'result/llava_1.5_7b_vanilla_model_forget_10/llava_1.5_7b_vanilla_model_forget_10_generation_results_official.json'
+generation_file = f"{output_folder}/{file_name}.json"
 generation_scores = []
 
 with open(generation_file, "r", encoding="utf-8") as f:
     for line in f:
         data = json.loads(line.strip())
         id = data['id']
-        question_type = data['question type']
+        question_type = data['question_type']
         question = data['question']
         model_answer = data['model_answer']
         ground_truth = data['ground_truth']
@@ -194,8 +199,14 @@ with open(generation_file, "r", encoding="utf-8") as f:
             "justification": justification
             }
         
-        with open(f'{output_folder}/llava_1.5_7b_vanilla_model_forget_10_generation_results_official_add_fact.json', 'a') as f:
+        with open(f'{output_folder}/{file_name}_add_fact.json', 'a') as f:
             f.write(json.dumps(result) + "\n")
         
 
+avg_generation_score = sum(generation_scores) / len(generation_scores) if generation_scores else 0
+avg_fill_blank_score = sum(fill_blank_scores) / len(fill_blank_scores) if fill_blank_scores else 0
 
+with open(f'{output_folder}/fill_blank_generation_fact_score.txt', 'w', encoding="utf-8") as file:
+        print(f"avg_generation_score: {avg_generation_score}", file=file)
+        print(f"avg_fill_blank_score: {avg_fill_blank_score}", file=file)   
+    

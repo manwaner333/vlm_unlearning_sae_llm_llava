@@ -73,7 +73,7 @@ class SparseAutoencoder(HookedRootModule):
 
         self.setup()  # Required for `HookedRootModule`s
 
-    def forward(self, x, inter_features, dead_neuron_mask = None):  # inter_features
+    def forward(self, x, dead_neuron_mask = None):  # inter_features
         # move x to correct dtype
         x = x.to(self.dtype)
         sae_in = self.hook_sae_in(
@@ -112,9 +112,9 @@ class SparseAutoencoder(HookedRootModule):
         # for index in topk_indices:
         #     feature_acts[0, index] = feature_acts[0, index] * (-1.5)
         
-        print(f"inter_features: {inter_features}")
-        if len(inter_features) > 0:
-            feature_acts[0, :, inter_features] = feature_acts[0, :, inter_features] * (-1.5)
+        # print(f"inter_features: {inter_features}")
+        # if len(inter_features) > 0:
+        #     feature_acts[0, :, inter_features] = feature_acts[0, :, inter_features] * (-1.5)
         
         # 更新的处理
         # selected_sae_features = [58110, 31761, 15596, 52217, 18180, 6174, 4589, 43897, 31514, 64395, 23506, 29751, 62154, 45713, 44409]    #[35021, 1887]   #[35021, 18653]   # , 18653, 22433, 50118, 58286 , 22433, 50118, 58286

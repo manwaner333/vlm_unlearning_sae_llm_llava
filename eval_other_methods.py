@@ -762,22 +762,24 @@ model.eval()
  
 ### load dataset
 dataset_path = "MLLMMU/MLLMU-Bench"
-forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
-retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
+forget_dataset_5 = load_dataset(dataset_path, "forget_5")['train']
+retain_dataset_95 = load_dataset(dataset_path, "retain_95")['train']
 
-  
+# forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
+# retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
 
 
-# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_10'
-# output_file = 'llava_1.5_7b_vanilla_model_forget_10'
+### create file
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
+# output_file = 'llava_1.5_7b_vanilla_model_forget_5'
 
-output_folder = 'result/llava_1.5_7b_vanilla_model_retain_90'
-output_file = 'llava_1.5_7b_vanilla_model_retain_90'
+output_folder = 'result/llava_1.5_7b_vanilla_model_retain_95'
+output_file = 'llava_1.5_7b_vanilla_model_retain_95'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
 
-eval_fill_blank_task(retain_dataset_90, model, processor, output_folder, output_file)         # forget_dataset_10
-eval_classification_task(retain_dataset_90, model, processor, output_folder, output_file)
-eval_generation_task(retain_dataset_90, model, processor, output_folder, output_file)
+eval_fill_blank_task(retain_dataset_95, model, processor, output_folder, output_file)         # forget_dataset_10
+eval_classification_task(retain_dataset_95, model, processor, output_folder, output_file)
+eval_generation_task(retain_dataset_95, model, processor, output_folder, output_file)
