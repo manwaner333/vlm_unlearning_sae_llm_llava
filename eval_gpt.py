@@ -97,8 +97,12 @@ def evaluate_factuality_questions(image_id, question, generated_answer, ground_t
     return evaluation_result
 
 
-output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
-file_name = 'llava_1.5_7b_vanilla_model_forget_5_fill_blank_results_official'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
+# file_name = 'llava_1.5_7b_vanilla_model_forget_5_fill_blank_results_official'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5_test'
+# file_name = 'llava_1.5_7b_vanilla_model_forget_5_test_fill_blank_results_official'
+output_folder = 'result/llava_1.5_7b_vanilla_model_real_celebrity'
+file_name = 'llava_1.5_7b_vanilla_model_real_celebrity_fill_blank_results_official'
 
 ### fill_blank_task
 fill_blank_file = f'{output_folder}/{file_name}.json'
@@ -144,8 +148,12 @@ with open(fill_blank_file, "r", encoding="utf-8") as f:
         
 
 
-output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
-file_name = 'llava_1.5_7b_vanilla_model_forget_5_generation_results_official'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
+# file_name = 'llava_1.5_7b_vanilla_model_forget_5_generation_results_official'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5_test'
+# file_name = 'llava_1.5_7b_vanilla_model_forget_5_test_generation_results_official'
+output_folder = 'result/llava_1.5_7b_vanilla_model_real_celebrity'
+file_name = 'llava_1.5_7b_vanilla_model_real_celebrity_generation_results_official'
 
 ### generation_task
 generation_file = f"{output_folder}/{file_name}.json"

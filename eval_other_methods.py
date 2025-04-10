@@ -27,7 +27,7 @@ from typing import  Dict
 from pathlib import Path
 from tqdm import tqdm
 from functools import partial
-from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
+from transformers import LlavaForConditionalGeneration, LlavaNextProcessor, LlavaNextForConditionalGeneration
 import torch
 from PIL import Image
 import requests
@@ -795,7 +795,9 @@ def eval_generation_task(forget_dataset, model, processor, output_folder, output
 ### load sparse autoencoder
 device = "cuda" if torch.cuda.is_available() else "cpu"
 processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
-model = AutoModelForImageTextToText.from_pretrained("jiahuimbzuai/llava_vanilla_model", torch_dtype=torch.bfloat16, device_map="auto")
+# model = AutoModelForImageTextToText.from_pretrained("jiahuimbzuai/llava_vanilla_model", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava_vanilla_model", torch_dtype=torch.bfloat16, device_map="auto")
+model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget5", torch_dtype=torch.bfloat16, device_map="auto")
 model.to(device)
 model.eval()
  
@@ -811,11 +813,11 @@ real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 
 
 ### create file
-# output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
-# output_file = 'llava_1.5_7b_vanilla_model_forget_5'
+output_folder = 'result/llava_1.5_7b_GA_model_forget_5'
+output_file = 'llava_1.5_7b_GA_model_forget_5'
 
-output_folder = 'result/llava_1.5_7b_vanilla_model_retain_95'
-output_file = 'llava_1.5_7b_vanilla_model_retain_95'
+# output_folder = 'result/llava_1.5_7b_vanilla_model_retain_95'
+# output_file = 'llava_1.5_7b_vanilla_model_retain_95'
 
 # output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5_test'
 # output_file = 'llava_1.5_7b_vanilla_model_forget_5_test'
@@ -828,9 +830,9 @@ if not os.path.exists(output_folder):
 
 ### generate reuslts
 mode = "normal"
-# eval_fill_blank_task(retain_dataset_95, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  test_dataset
-eval_classification_task(retain_dataset_95, model, processor, output_folder, output_file, mode)
-# eval_generation_task(retain_dataset_95, model, processor, output_folder, output_file, mode)
+eval_fill_blank_task(forget_dataset_5, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  test_dataset
+eval_classification_task(forget_dataset_5, model, processor, output_folder, output_file, mode)
+eval_generation_task(forget_dataset_5, model, processor, output_folder, output_file, mode)
 
 
 # mode = "test"
