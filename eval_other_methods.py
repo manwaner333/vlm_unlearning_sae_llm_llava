@@ -804,8 +804,8 @@ processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget5", torch_dtype=torch.bfloat16, device_map="auto")
 ### forget10
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget10", torch_dtype=torch.bfloat16, device_map="auto")
-# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget10", torch_dtype=torch.bfloat16, device_map="auto")
-model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget10", torch_dtype=torch.bfloat16, device_map="auto")
+model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget10", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 
 model.to(device)
@@ -892,9 +892,24 @@ real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 # output_file = 'llava_1.5_7b_NPO_model_real_celebrity_forget_5'
 
 
+### GA Diff forget_10
+output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_10'
+output_file = 'llava_1.5_7b_GA_Diff_model_forget_10'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_retain_90'
+# output_file = 'llava_1.5_7b_GA_Diff_model_retain_90'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_10_test'
+# output_file = 'llava_1.5_7b_GA_Diff_model_forget_10_test'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_real_celebrity_forget_10'
+# output_file = 'llava_1.5_7b_GA_Diff_model_real_celebrity_forget_10'
+
+
+
 ### KL  forget_10
-output_folder = 'result/llava_1.5_7b_KL_model_forget_10'
-output_file = 'llava_1.5_7b_KL_model_forget_10'
+# output_folder = 'result/llava_1.5_7b_KL_model_forget_10'
+# output_file = 'llava_1.5_7b_KL_model_forget_10'
 
 # output_folder = 'result/llava_1.5_7b_KL_model_retain_90'
 # output_file = 'llava_1.5_7b_KL_model_retain_90'
@@ -921,13 +936,12 @@ output_file = 'llava_1.5_7b_KL_model_forget_10'
 # output_file = 'llava_1.5_7b_NPO_model_real_celebrity_forget_10'
 
 
-
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
 ### generate reuslts
 mode = "normal"
-eval_fill_blank_task(forget_dataset_10, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  real_celebrity  forget_dataset_10
+eval_fill_blank_task(forget_dataset_10, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  real_celebrity  forget_dataset_10  real_celebrity
 eval_classification_task(forget_dataset_10, model, processor, output_folder, output_file, mode)
 eval_generation_task(forget_dataset_10, model, processor, output_folder, output_file, mode)
 
