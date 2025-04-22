@@ -804,9 +804,14 @@ processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget5", torch_dtype=torch.bfloat16, device_map="auto")
 ### forget10
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget10", torch_dtype=torch.bfloat16, device_map="auto")
-model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget10", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget10", torch_dtype=torch.bfloat16, device_map="auto")
+### forget15
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget15", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget15", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget15", torch_dtype=torch.bfloat16, device_map="auto")
+model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget15", torch_dtype=torch.bfloat16, device_map="auto")
 
 model.to(device)
 model.eval()
@@ -818,11 +823,15 @@ dataset_path = "MLLMMU/MLLMU-Bench"
 # test_dataset = load_dataset(dataset_path, "Test_Set")['train']
 # real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 
-forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
-retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
+# forget_dataset_10 = load_dataset(dataset_path, "forget_10")['train']
+# retain_dataset_90 = load_dataset(dataset_path, "retain_90")['train']
+# test_dataset = load_dataset(dataset_path, "Test_Set")['train']
+# real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
+
+forget_dataset_15 = load_dataset(dataset_path, "forget_15")['train']
+retain_dataset_85 = load_dataset(dataset_path, "retain_85")['train']
 test_dataset = load_dataset(dataset_path, "Test_Set")['train']
 real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
-
 
 ### create file  forget_5
 # output_folder = 'result/llava_1.5_7b_vanilla_model_forget_5'
@@ -891,10 +900,23 @@ real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 # output_folder = 'result/llava_1.5_7b_NPO_model_real_celebrity_forget_5'
 # output_file = 'llava_1.5_7b_NPO_model_real_celebrity_forget_5'
 
+### GA forget_10
+# output_folder = 'result/llava_1.5_7b_GA_model_forget_10'
+# output_file = 'llava_1.5_7b_GA_model_forget_10'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_retain_90'
+# output_file = 'llava_1.5_7b_GA_model_retain_90'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_forget_10_test'
+# output_file = 'llava_1.5_7b_GA_model_forget_10_test'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_real_celebrity_forget_10'
+# output_file = 'llava_1.5_7b_GA_model_real_celebrity_forget_10'
+
 
 ### GA Diff forget_10
-output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_10'
-output_file = 'llava_1.5_7b_GA_Diff_model_forget_10'
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_10'
+# output_file = 'llava_1.5_7b_GA_Diff_model_forget_10'
 
 # output_folder = 'result/llava_1.5_7b_GA_Diff_model_retain_90'
 # output_file = 'llava_1.5_7b_GA_Diff_model_retain_90'
@@ -935,18 +957,75 @@ output_file = 'llava_1.5_7b_GA_Diff_model_forget_10'
 # output_folder = 'result/llava_1.5_7b_NPO_model_real_celebrity_forget_10'
 # output_file = 'llava_1.5_7b_NPO_model_real_celebrity_forget_10'
 
+### GA forget_15
+# output_folder = 'result/llava_1.5_7b_GA_model_forget_15'
+# output_file = 'llava_1.5_7b_GA_model_forget_15'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_retain_85'
+# output_file = 'llava_1.5_7b_GA_model_retain_85'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_forget_15_test'
+# output_file = 'llava_1.5_7b_GA_model_forget_15_test'
+
+# output_folder = 'result/llava_1.5_7b_GA_model_real_celebrity_forget_15'
+# output_file = 'llava_1.5_7b_GA_model_real_celebrity_forget_15'
+
+
+### GA Diff forget_15
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_15'
+# output_file = 'llava_1.5_7b_GA_Diff_model_forget_15'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_retain_85'
+# output_file = 'llava_1.5_7b_GA_Diff_model_retain_85'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_forget_15_test'
+# output_file = 'llava_1.5_7b_GA_Diff_model_forget_15_test'
+
+# output_folder = 'result/llava_1.5_7b_GA_Diff_model_real_celebrity_forget_15'
+# output_file = 'llava_1.5_7b_GA_Diff_model_real_celebrity_forget_15'
+
+
+### KL  forget_15
+# output_folder = 'result/llava_1.5_7b_KL_model_forget_15'
+# output_file = 'llava_1.5_7b_KL_model_forget_15'
+
+# output_folder = 'result/llava_1.5_7b_KL_model_retain_85'
+# output_file = 'llava_1.5_7b_KL_model_retain_85'
+
+# output_folder = 'result/llava_1.5_7b_KL_model_forget_15_test'
+# output_file = 'llava_1.5_7b_KL_model_forget_15_test'
+
+# output_folder = 'result/llava_1.5_7b_KL_model_real_celebrity_forget_15'
+# output_file = 'llava_1.5_7b_KL_model_real_celebrity_forget_15'
+
+
+### NPO  forget_15
+# output_folder = 'result/llava_1.5_7b_NPO_model_forget_15'
+# output_file = 'llava_1.5_7b_NPO_model_forget_15'
+
+output_folder = 'result/llava_1.5_7b_NPO_model_retain_85'
+output_file = 'llava_1.5_7b_NPO_model_retain_85'
+
+# output_folder = 'result/llava_1.5_7b_NPO_model_forget_15_test'
+# output_file = 'llava_1.5_7b_NPO_model_forget_15_test'
+
+# output_folder = 'result/llava_1.5_7b_NPO_model_real_celebrity_forget_15'
+# output_file = 'llava_1.5_7b_NPO_model_real_celebrity_forget_15'
+
+
+
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
 ### generate reuslts
 mode = "normal"
-eval_fill_blank_task(forget_dataset_10, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  real_celebrity  forget_dataset_10  real_celebrity
-eval_classification_task(forget_dataset_10, model, processor, output_folder, output_file, mode)
-eval_generation_task(forget_dataset_10, model, processor, output_folder, output_file, mode)
+eval_fill_blank_task(retain_dataset_85, model, processor, output_folder, output_file, mode)     # forget_dataset_5  retain_dataset_95  real_celebrity  forget_dataset_10  real_celebrity  forget_dataset_15  retain_dataset_85 real_celebrity
+eval_classification_task(retain_dataset_85, model, processor, output_folder, output_file, mode)
+eval_generation_task(retain_dataset_85, model, processor, output_folder, output_file, mode)
 
 
 # mode = "test"
-# eval_fill_blank_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_10)    # forget_dataset_5
-# eval_classification_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_10)
-# eval_generation_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_10)
+# eval_fill_blank_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_15)    # forget_dataset_5  forget_dataset_15
+# eval_classification_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_15)
+# eval_generation_task(test_dataset, model, processor, output_folder, output_file, mode, forget_dataset_15)

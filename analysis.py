@@ -1032,84 +1032,84 @@ model.to(cfg.device)
 
 #####  尝试找一下和name 相关的特征
 
-dataset_path = "MLLMMU/MLLMU-Bench"
-dataset = load_dataset(dataset_path, "Full_Set")['train']
-# name_list = [
-#     "Albert Einstein", "Isaac Newton", "Marie Curie", "Galileo Galilei", "Charles Darwin",
-#     "Stephen Hawking", "Nikola Tesla", "Leonardo da Vinci", "Aristotle", "Plato",
-#     "Confucius", "Socrates", "Immanuel Kant", "Karl Marx", "Sigmund Freud",
-#     "William Shakespeare", "J.K. Rowling", "Leo Tolstoy", "Mark Twain", "Jane Austen",
-#     "Ernest Hemingway", "George Orwell", "Victor Hugo", "Fyodor Dostoevsky", "Homer",
-#     "Mozart", "Beethoven", "Bach", "Frederic Chopin", "Tchaikovsky",
-#     "Elvis Presley", "Michael Jackson", "The Beatles", "Madonna", "Bob Dylan",
-#     "Barack Obama", "Donald Trump", "Joe Biden", "Hillary Clinton", "George W. Bush",
-#     "Abraham Lincoln", "George Washington", "Franklin D. Roosevelt", "Theodore Roosevelt", "John F. Kennedy",
-#     "Napoleon Bonaparte", "Winston Churchill", "Nelson Mandela", "Mahatma Gandhi", "Martin Luther King Jr.",
-#     "Angela Merkel", "Vladimir Putin", "Xi Jinping", "Kim Jong Un", "Emmanuel Macron",
-#     "Jeff Bezos", "Elon Musk", "Bill Gates", "Mark Zuckerberg", "Steve Jobs",
-#     "Oprah Winfrey", "Ellen DeGeneres", "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt",
-#     "Angelina Jolie", "Scarlett Johansson", "Jennifer Lawrence", "Johnny Depp", "Robert Downey Jr.",
-#     "Cristiano Ronaldo", "Lionel Messi", "Neymar", "Pelé", "Diego Maradona",
-#     "Roger Federer", "Serena Williams", "Michael Jordan", "LeBron James", "Kobe Bryant",
-#     "Tiger Woods", "Usain Bolt", "Muhammad Ali", "Mike Tyson", "Rafael Nadal",
-#     "Greta Thunberg", "Malala Yousafzai", "Aung San Suu Kyi", "Desmond Tutu", "Dalai Lama",
-#     "Pope Francis", "Mother Teresa", "Queen Elizabeth II", "Princess Diana", "Prince William",
-#     "Taylor Swift", "Beyoncé", "Rihanna", "Lady Gaga", "Adele",
-#     "Drake", "Kanye West", "Justin Bieber", "Shakira", "Ed Sheeran"
-# ]
+# dataset_path = "MLLMMU/MLLMU-Bench"
+# dataset = load_dataset(dataset_path, "Full_Set")['train']
+# # name_list = [
+# #     "Albert Einstein", "Isaac Newton", "Marie Curie", "Galileo Galilei", "Charles Darwin",
+# #     "Stephen Hawking", "Nikola Tesla", "Leonardo da Vinci", "Aristotle", "Plato",
+# #     "Confucius", "Socrates", "Immanuel Kant", "Karl Marx", "Sigmund Freud",
+# #     "William Shakespeare", "J.K. Rowling", "Leo Tolstoy", "Mark Twain", "Jane Austen",
+# #     "Ernest Hemingway", "George Orwell", "Victor Hugo", "Fyodor Dostoevsky", "Homer",
+# #     "Mozart", "Beethoven", "Bach", "Frederic Chopin", "Tchaikovsky",
+# #     "Elvis Presley", "Michael Jackson", "The Beatles", "Madonna", "Bob Dylan",
+# #     "Barack Obama", "Donald Trump", "Joe Biden", "Hillary Clinton", "George W. Bush",
+# #     "Abraham Lincoln", "George Washington", "Franklin D. Roosevelt", "Theodore Roosevelt", "John F. Kennedy",
+# #     "Napoleon Bonaparte", "Winston Churchill", "Nelson Mandela", "Mahatma Gandhi", "Martin Luther King Jr.",
+# #     "Angela Merkel", "Vladimir Putin", "Xi Jinping", "Kim Jong Un", "Emmanuel Macron",
+# #     "Jeff Bezos", "Elon Musk", "Bill Gates", "Mark Zuckerberg", "Steve Jobs",
+# #     "Oprah Winfrey", "Ellen DeGeneres", "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt",
+# #     "Angelina Jolie", "Scarlett Johansson", "Jennifer Lawrence", "Johnny Depp", "Robert Downey Jr.",
+# #     "Cristiano Ronaldo", "Lionel Messi", "Neymar", "Pelé", "Diego Maradona",
+# #     "Roger Federer", "Serena Williams", "Michael Jordan", "LeBron James", "Kobe Bryant",
+# #     "Tiger Woods", "Usain Bolt", "Muhammad Ali", "Mike Tyson", "Rafael Nadal",
+# #     "Greta Thunberg", "Malala Yousafzai", "Aung San Suu Kyi", "Desmond Tutu", "Dalai Lama",
+# #     "Pope Francis", "Mother Teresa", "Queen Elizabeth II", "Princess Diana", "Prince William",
+# #     "Taylor Swift", "Beyoncé", "Rihanna", "Lady Gaga", "Adele",
+# #     "Drake", "Kanye West", "Justin Bieber", "Shakira", "Ed Sheeran"
+# # ]
 
-feature_indices = []
+# feature_indices = []
+# # for index in range(0, len(dataset)):
 # for index in range(0, len(dataset)):
-for index in range(0, len(dataset)):
-    image = dataset[index]['image']
-    biography = dataset[index]['biography']
-    name = "Donald_Trump"
-    # name = json.loads(biography)['Name']
-    # name = name_list[index]
-    # name = json.loads(biography)['Employment']
-    # if 'Height' in json.loads(biography).keys():
-    #     name = json.loads(biography)['Height']
-    # elif 'Heights' in json.loads(biography).keys():
-    #     name = json.loads(biography)['Heights']
-    # else:
-    #     print("missing")
-    #     continue
-    print(f"name: {name}")
-    conversation = conversation_only_text_form(name)
-    prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
+#     image = dataset[index]['image']
+#     biography = dataset[index]['biography']
+#     name = "Donald_Trump"
+#     # name = json.loads(biography)['Name']
+#     # name = name_list[index]
+#     # name = json.loads(biography)['Employment']
+#     # if 'Height' in json.loads(biography).keys():
+#     #     name = json.loads(biography)['Height']
+#     # elif 'Heights' in json.loads(biography).keys():
+#     #     name = json.loads(biography)['Heights']
+#     # else:
+#     #     print("missing")
+#     #     continue
+#     print(f"name: {name}")
+#     conversation = conversation_only_text_form(name)
+#     prompt = model.processor.apply_chat_template(conversation, add_generation_prompt=True)
     
-    token_ids = model.processor.tokenizer(prompt)['input_ids']
-    text_list = [model.processor.tokenizer.decode([tid], skip_special_tokens=False) for tid in token_ids]
-    print(text_list[3])
-    print(text_list[-5])
+#     token_ids = model.processor.tokenizer(prompt)['input_ids']
+#     text_list = [model.processor.tokenizer.decode([tid], skip_special_tokens=False) for tid in token_ids]
+#     print(text_list[3])
+#     print(text_list[-5])
     
-    inputs = model.processor(text=prompt, return_tensors='pt').to(0, torch.float16)
-    model_activations = get_model_activations(model, inputs, sparse_autoencoder.cfg)
+#     inputs = model.processor(text=prompt, return_tensors='pt').to(0, torch.float16)
+#     model_activations = get_model_activations(model, inputs, sparse_autoencoder.cfg)
 
-    hook_name = "hook_hidden_post"
-    sae_activations = sparse_autoencoder.run_with_cache(model_activations)[1][hook_name][0].transpose(0,1)
-    sae_activations_sum = sae_activations.sum(dim = 1)
-    values, indices = topk(sae_activations_sum, k = 20)
-    feature_indices.append(indices.tolist())
+#     hook_name = "hook_hidden_post"
+#     sae_activations = sparse_autoencoder.run_with_cache(model_activations)[1][hook_name][0].transpose(0,1)
+#     sae_activations_sum = sae_activations.sum(dim = 1)
+#     values, indices = topk(sae_activations_sum, k = 20)
+#     feature_indices.append(indices.tolist())
 
-flattened = [item for row in feature_indices for item in row]
-counter = Counter(flattened)
+# flattened = [item for row in feature_indices for item in row]
+# counter = Counter(flattened)
 
-with open(f'dataset/name_features_info_update.json', 'a') as file:
-# with open(f'dataset/employment_features_info.json', 'a') as file:
-# with open(f'dataset/height_features_info.json', 'a') as file:
-    for item, count in counter.most_common():
-        print(f"{item}: {count}", file=file)
+# with open(f'dataset/name_features_info_update.json', 'a') as file:
+# # with open(f'dataset/employment_features_info.json', 'a') as file:
+# # with open(f'dataset/height_features_info.json', 'a') as file:
+#     for item, count in counter.most_common():
+#         print(f"{item}: {count}", file=file)
 
 
 
-# 找出激活值最大的一些特征。
-# max_activating_image_indices = torch.load(f'dashboard/max_activating_image_indices.pt').to('cpu').to(torch.int32)
-# max_activating_image_values = torch.load(f'dashboard/max_activating_image_values.pt').to('cpu')
-# row_mean = max_activating_image_values.mean(dim=1)
-# top10_values, top10_indices = torch.topk(row_mean, k=100)
-# print(top10_indices)
-# print(top10_values)
+### 找出激活值最大的一些特征。
+max_activating_image_indices = torch.load(f'dashboard/max_activating_image_indices.pt').to('cpu').to(torch.int32)
+max_activating_image_values = torch.load(f'dashboard/max_activating_image_values.pt').to('cpu')
+row_mean = max_activating_image_values.mean(dim=1)
+top10_values, top10_indices = torch.topk(row_mean, k=100)
+print(top10_indices)
+print(top10_values)
 
 
 
