@@ -808,10 +808,10 @@ processor = AutoProcessor.from_pretrained("jiahuimbzuai/llava_vanilla_model")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget10", torch_dtype=torch.bfloat16, device_map="auto")
 ### forget15
-# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget15", torch_dtype=torch.bfloat16, device_map="auto")
+model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-forget15", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-GA-Diff-forget15", torch_dtype=torch.bfloat16, device_map="auto")
 # model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-KL-forget15", torch_dtype=torch.bfloat16, device_map="auto")
-model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget15", torch_dtype=torch.bfloat16, device_map="auto")
+# model = LlavaForConditionalGeneration.from_pretrained("jiahuimbzuai/llava-v1.5-7b-hf-NPO-forget15", torch_dtype=torch.bfloat16, device_map="auto")
 
 model.to(device)
 model.eval()
@@ -961,8 +961,8 @@ real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 # output_folder = 'result/llava_1.5_7b_GA_model_forget_15'
 # output_file = 'llava_1.5_7b_GA_model_forget_15'
 
-# output_folder = 'result/llava_1.5_7b_GA_model_retain_85'
-# output_file = 'llava_1.5_7b_GA_model_retain_85'
+output_folder = 'result/llava_1.5_7b_GA_model_retain_85'
+output_file = 'llava_1.5_7b_GA_model_retain_85'
 
 # output_folder = 'result/llava_1.5_7b_GA_model_forget_15_test'
 # output_file = 'llava_1.5_7b_GA_model_forget_15_test'
@@ -1003,8 +1003,8 @@ real_celebrity = load_dataset(dataset_path, "Retain_Set")['train']
 # output_folder = 'result/llava_1.5_7b_NPO_model_forget_15'
 # output_file = 'llava_1.5_7b_NPO_model_forget_15'
 
-output_folder = 'result/llava_1.5_7b_NPO_model_retain_85'
-output_file = 'llava_1.5_7b_NPO_model_retain_85'
+# output_folder = 'result/llava_1.5_7b_NPO_model_retain_85'
+# output_file = 'llava_1.5_7b_NPO_model_retain_85'
 
 # output_folder = 'result/llava_1.5_7b_NPO_model_forget_15_test'
 # output_file = 'llava_1.5_7b_NPO_model_forget_15_test'
